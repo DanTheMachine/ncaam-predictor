@@ -1,16 +1,32 @@
-# React + Vite
+# NCAAM Predictor
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[![CI](https://github.com/DanTheMachine/ncaam-predictor/actions/workflows/ci.yml/badge.svg)](https://github.com/DanTheMachine/ncaam-predictor/actions/workflows/ci.yml)
 
-Currently, two official plugins are available:
+React + Vite app for projecting NCAA men's basketball games, comparing those projections against sportsbook lines, and reviewing model performance over time.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
 
-## React Compiler
+- Single-game prediction with market comparison
+- Bulk slate import from sportsbook-style paste text
+- Moneyline, spread, and total recommendation analysis
+- Barttorvik and KenPom stats import
+- Prediction and results CSV export
+- Results Tracker and Model Eval workflows
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Scripts
 
-## Expanding the ESLint configuration
+- `npm run dev`: start the local Vite app
+- `npm run test`: run Vitest unit and component tests
+- `npm run test:ui`: open the Vitest UI
+- `npm run test:e2e`: run Playwright E2E tests
+- `npm run build`: create a production build
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Testing
+
+The project now includes:
+
+- Vitest component tests for the active `NCAAPredictor` UI
+- Unit tests for prediction math and parser behavior
+- Playwright browser smoke coverage for the main user flow
+
+GitHub Actions runs Vitest, Playwright, and the production build on every push and pull request.
