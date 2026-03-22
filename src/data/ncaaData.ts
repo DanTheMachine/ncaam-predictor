@@ -1,10 +1,12 @@
+import type { TeamMap } from '../types'
+
 export const CONFERENCES = [
   "ACC","Big 12","Big East","Big Ten","Pac-12","SEC",
   "American","Mountain West","A-10","WCC","MVC","Sun Belt",
   "MAC","CUSA","Horizon","CAA","Southern","Big South","NEC","SWAC","MEAC","Patriot","OVC","WAC","Ivy","Summit","Big West","ASUN","SBC","MAAC","Southland","Big Sky","Independent"
 ];
 
-export const TEAMS = {
+export const TEAMS: TeamMap = {
   // ── ACC ──
   "DUKE":  { name:"Blue Devils",      conf:"ACC", color:"#003087", alt:"#FFFFFF", adjO:122.8, adjD:92.4,  adjEM:30.4, tempo:71.2, efgPct:55.8, tovPct:15.2, orbPct:33.8, ftr:36.4, arena:"Cameron Indoor Stadium",     capacity:9314  },
   "UNC":   { name:"Tar Heels",        conf:"ACC", color:"#4B9CD3", alt:"#FFFFFF", adjO:118.4, adjD:96.1,  adjEM:22.3, tempo:72.4, efgPct:54.2, tovPct:16.1, orbPct:34.2, ftr:37.8, arena:"Dean E. Smith Center",        capacity:21750 },
@@ -290,7 +292,7 @@ export const KENPOM_NAME_MAP = {
   "prairie view":"PVAM","navy":"NAVY","illinois state":"ILLST","utah valley":"UVU",
   "utah valley state":"UVU","murray state":"MURR","illinois chicago":"UIC","uic":"UIC",
   "st. josephs":"STJOE","st josephs":"STJOE","kennesaw st":"KENN","central florida":"UCF",
-  "miami florida":"MIAMI","st. johns":"STJ","st johns":"STJ","saint louis":"STLOU",
+  "miami florida":"MIAMI","st. johns":"STJ","st johns":"STJ",
   "pennsylvania":"PENN","mcneese state":"MCNEESE","wright state":"WRIGHT","tennessee state":"TENNST",
   "queens nc":"QUEENS","long island":"LIU","siena":"SIENA","hofstra":"HOFSTRA","furman":"FURMAN",
   "akron":"AKRON","idaho":"IDAHO","idaho u":"IDAHO",

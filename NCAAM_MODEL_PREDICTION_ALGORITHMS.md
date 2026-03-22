@@ -1,6 +1,6 @@
 # NCAAM Bet Predictor Model Algorithms
 
-This document explains how the current model in [predictionEngine.js](C:\projects\game_sims\ncaam-predictor\src\lib\predictionEngine.js) produces:
+This document explains how the current model in [predictionEngine.js](C:\projects\game_sims\ncaam-predictor\src\lib\predictionEngine.ts) produces:
 
 - projected scores
 - projected game total
@@ -23,7 +23,7 @@ For each matchup, the engine starts with team-level ratings.
 
 These come from:
 
-- baseline team estimates in [ncaaData.js](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.js)
+- baseline team estimates in [ncaaData.js](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.ts)
 - optionally overwritten by imported Barttorvik or KenPom data
 
 The model also uses game context.
@@ -896,7 +896,8 @@ A bankroll sizing method based on edge and payout. This model uses a fractional 
 
 ## 16. Main Source Files
 
-- [predictionEngine.js](C:\projects\game_sims\ncaam-predictor\src\lib\predictionEngine.js)
-- [statsParser.js](C:\projects\game_sims\ncaam-predictor\src\lib\statsParser.js)
-- [sportsbookParser.js](C:\projects\game_sims\ncaam-predictor\src\lib\sportsbookParser.js)
-- [ncaaData.js](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.js)
+- [predictionEngine.js](C:\projects\game_sims\ncaam-predictor\src\lib\predictionEngine.ts)
+- [statsParser.js](C:\projects\game_sims\ncaam-predictor\src\lib\statsParser.ts)
+- [sportsbookParser.js](C:\projects\game_sims\ncaam-predictor\src\lib\sportsbookParser.ts)
+- [ncaaData.js](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.ts)
+

@@ -13,10 +13,11 @@ The app supports:
 - exporting predictions/results CSVs
 - a results tracker for grading past picks
 - a dedicated Model Eval tab for ROI review
+- hook-based orchestration for predictor and results workflows
 - local Vitest and Playwright test coverage
 - GitHub Actions CI for tests and build
 
-The most important user-facing screen is the predictor app in [NCAAPredictor.jsx](C:\projects\game_sims\ncaam-predictor\src\NCAAPredictor.jsx).
+The most important user-facing screen is the predictor app in [NCAAPredictor.tsx](C:\projects\game_sims\ncaam-predictor\src\NCAAPredictor.tsx).
 
 There is also now an operational runbook for using the app locally:
 
@@ -26,13 +27,13 @@ There is also now an operational runbook for using the app locally:
 
 The active app entry now runs through:
 
-- [main.jsx](C:\projects\game_sims\ncaam-predictor\src\main.jsx)
+- [main.tsx](C:\projects\game_sims\ncaam-predictor\src\main.tsx)
 
-`main.jsx` imports:
+`main.tsx` imports:
 
-- [NCAAPredictor.jsx](C:\projects\game_sims\ncaam-predictor\src\NCAAPredictor.jsx)
+- [NCAAPredictor.tsx](C:\projects\game_sims\ncaam-predictor\src\NCAAPredictor.tsx)
 
-[App.jsx](C:\projects\game_sims\ncaam-predictor\src\App.jsx) still appears to be an older leftover file and should not be assumed to be active.
+[App.tsx](C:\projects\game_sims\ncaam-predictor\src\App.tsx) still appears to be an older leftover file and should not be assumed to be active.
 
 ## High-Level Architecture
 
@@ -40,21 +41,31 @@ The project was refactored from one very large component into smaller modules.
 
 ### Main app shell
 
-- [NCAAPredictor.jsx](C:\projects\game_sims\ncaam-predictor\src\NCAAPredictor.jsx)
-  - owns most UI state
-  - wires prediction engine to controls and displays
-  - handles bulk import, stats import, CSV export, results tracking, and Model Eval UI
+- [NCAAPredictor.tsx](C:\projects\game_sims\ncaam-predictor\src\NCAAPredictor.tsx)
+  - now mostly owns top-level tab state, refs, layout, and prop wiring
+  - composes the extracted predictor, results, and model-eval workspaces
+
+### Hook orchestration
+
+- [usePredictorState.ts](C:\projects\game_sims\ncaam-predictor\src\hooks\usePredictorState.ts)
+  - owns predictor-tab orchestration
+  - manages stats import state, slate import/edit state, run-all-sims flow, single-game state, export helpers, and best-bets/sim-summary preparation
+
+- [useResultsWorkspace.ts](C:\projects\game_sims\ncaam-predictor\src\hooks\useResultsWorkspace.ts)
+  - owns results/model-eval orchestration
+  - manages predictions/results CSV import state, grading summaries, threshold/calibration controls, and clear/reset flows
 
 ### Data
 
-- [ncaaData.js](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.js)
+- [ncaaData.ts](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.ts)
   - team baseline data
   - conferences
   - alias/name maps used for parser resolution
+  - core lookup support for sportsbook parsing and UI team selection
 
 ### Model logic
 
-- [predictionEngine.js](C:\projects\game_sims\ncaam-predictor\src\lib\predictionEngine.js)
+- [predictionEngine.ts](C:\projects\game_sims\ncaam-predictor\src\lib\predictionEngine.ts)
   - projected score and total logic
   - Money Line and spread probability logic
   - betting edge analysis
@@ -65,11 +76,14 @@ The project was refactored from one very large component into smaller modules.
 - [src/test](C:\projects\game_sims\ncaam-predictor\src\test)
   - Vitest component tests for the active UI
   - unit tests for prediction engine math and parser behavior
+  - focused hook tests for predictor and results workspace orchestration
 
 - [tests/e2e](C:\projects\game_sims\ncaam-predictor\tests\e2e)
   - Playwright browser smoke tests
+  - predictor slate flow coverage
+  - results tracker / model eval CSV import coverage
 
-- [playwright.config.js](C:\projects\game_sims\ncaam-predictor\playwright.config.js)
+- [playwright.config.ts](C:\projects\game_sims\ncaam-predictor\playwright.config.ts)
   - local Playwright configuration
 
 - [ci.yml](C:\projects\game_sims\ncaam-predictor\.github\workflows\ci.yml)
@@ -78,18 +92,31 @@ The project was refactored from one very large component into smaller modules.
 
 ### Parsing
 
-- [statsParser.js](C:\projects\game_sims\ncaam-predictor\src\lib\statsParser.js)
+- [statsParser.ts](C:\projects\game_sims\ncaam-predictor\src\lib\statsParser.ts)
   - parses Barttorvik and KenPom text/CSV imports
 
-- [sportsbookParser.js](C:\projects\game_sims\ncaam-predictor\src\lib\sportsbookParser.js)
+- [sportsbookParser.ts](C:\projects\game_sims\ncaam-predictor\src\lib\sportsbookParser.ts)
   - parses sportsbook paste formats
   - resolves team names through aliases and abbreviations
   - can now return unmatched-team diagnostics
 
 ### Reusable UI
 
-- [PredictorBits.jsx](C:\projects\game_sims\ncaam-predictor\src\components\PredictorBits.jsx)
+- [PredictorPanels.tsx](C:\projects\game_sims\ncaam-predictor\src\components\PredictorPanels.tsx)
+  - extracted Predictor tab panels
+  - includes stats import, slate controls/table, sim summary, best bets, and the single-game workspace
+
+- [ResultsWorkspace.tsx](C:\projects\game_sims\ncaam-predictor\src\components\ResultsWorkspace.tsx)
+  - extracted Results Tracker and Model Eval tab UIs
+
+- [PredictorBits.tsx](C:\projects\game_sims\ncaam-predictor\src\components\PredictorBits.tsx)
   - shared display components such as stat bars/cards
+
+### Shared types
+
+- [types.ts](C:\projects\game_sims\ncaam-predictor\src\types.ts)
+  - shared predictor, parser, and evaluation shapes
+  - includes cross-module state like `EvalControlState`
 
 ## Prediction Model Summary
 
@@ -227,9 +254,11 @@ This still does not fully auto-fetch Barttorvik from the web. Full one-click rem
 
 ### Model Eval tab
 
-There is now a dedicated Model Eval tab in:
+There is now a dedicated Model Eval tab composed through:
 
-- [NCAAPredictor.jsx](C:\projects\game_sims\ncaam-predictor\src\NCAAPredictor.jsx)
+- [NCAAPredictor.tsx](C:\projects\game_sims\ncaam-predictor\src\NCAAPredictor.tsx)
+- [ResultsWorkspace.tsx](C:\projects\game_sims\ncaam-predictor\src\components\ResultsWorkspace.tsx)
+- [useResultsWorkspace.ts](C:\projects\game_sims\ncaam-predictor\src\hooks\useResultsWorkspace.ts)
 
 Current behavior:
 
@@ -331,14 +360,21 @@ Current recommendation thresholds still exist, but they should not be treated as
 
 The current plan is to recalibrate after collecting more prediction/results CSV sets rather than tuning blindly.
 
+### 7. Patch/editing can be sensitive around formatting quirks
+
+Recent refactors are stable, but a few files still have enough formatting and encoding noise that smaller, surgical edits tend to be safer than large blind patches.
+
 ## Practical Editing Guidance
 
 When modifying the project:
 
-- if prediction logic changes, inspect [predictionEngine.js](C:\projects\game_sims\ncaam-predictor\src\lib\predictionEngine.js) first
-- if import match rate is poor, inspect [ncaaData.js](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.js) and [sportsbookParser.js](C:\projects\game_sims\ncaam-predictor\src\lib\sportsbookParser.js)
-- if Barttorvik or KenPom import fails, inspect [statsParser.js](C:\projects\game_sims\ncaam-predictor\src\lib\statsParser.js)
-- if React warnings mention `key` props or render lists, check the large render sections in [NCAAPredictor.jsx](C:\projects\game_sims\ncaam-predictor\src\NCAAPredictor.jsx)
+- if prediction logic changes, inspect [predictionEngine.ts](C:\projects\game_sims\ncaam-predictor\src\lib\predictionEngine.ts) first
+- if import match rate is poor, inspect [ncaaData.ts](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.ts) and [sportsbookParser.ts](C:\projects\game_sims\ncaam-predictor\src\lib\sportsbookParser.ts)
+- if Barttorvik or KenPom import fails, inspect [statsParser.ts](C:\projects\game_sims\ncaam-predictor\src\lib\statsParser.ts)
+- if predictor behavior changes, check [usePredictorState.ts](C:\projects\game_sims\ncaam-predictor\src\hooks\usePredictorState.ts) before assuming it still lives in the screen component
+- if results/model-eval behavior changes, check [useResultsWorkspace.ts](C:\projects\game_sims\ncaam-predictor\src\hooks\useResultsWorkspace.ts)
+- if hook behavior changes, update the focused hook tests in [src/test](C:\projects\game_sims\ncaam-predictor\src\test) along with the implementation
+- if React warnings mention `key` props or render lists, check the extracted render sections in [PredictorPanels.tsx](C:\projects\game_sims\ncaam-predictor\src\components\PredictorPanels.tsx) or [ResultsWorkspace.tsx](C:\projects\game_sims\ncaam-predictor\src\components\ResultsWorkspace.tsx)
 
 ## Typical Commands
 
@@ -351,12 +387,16 @@ When modifying the project:
 
 ## Recommended First Reads For Future Work
 
-1. [main.jsx](C:\projects\game_sims\ncaam-predictor\src\main.jsx)
-2. [NCAAPredictor.jsx](C:\projects\game_sims\ncaam-predictor\src\NCAAPredictor.jsx)
-3. [predictionEngine.js](C:\projects\game_sims\ncaam-predictor\src\lib\predictionEngine.js)
-4. [ncaaData.js](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.js)
-5. [sportsbookParser.js](C:\projects\game_sims\ncaam-predictor\src\lib\sportsbookParser.js)
+1. [main.tsx](C:\projects\game_sims\ncaam-predictor\src\main.tsx)
+2. [NCAAPredictor.tsx](C:\projects\game_sims\ncaam-predictor\src\NCAAPredictor.tsx)
+3. [usePredictorState.ts](C:\projects\game_sims\ncaam-predictor\src\hooks\usePredictorState.ts)
+4. [useResultsWorkspace.ts](C:\projects\game_sims\ncaam-predictor\src\hooks\useResultsWorkspace.ts)
+5. [predictionEngine.ts](C:\projects\game_sims\ncaam-predictor\src\lib\predictionEngine.ts)
+6. [ncaaData.ts](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.ts)
+7. [sportsbookParser.ts](C:\projects\game_sims\ncaam-predictor\src\lib\sportsbookParser.ts)
+8. [src/test](C:\projects\game_sims\ncaam-predictor\src\test)
 
 If the task is operational rather than code-oriented, also read:
 
-6. [RUNNING_THE_NCAAM_MODEL.md](C:\projects\game_sims\ncaam-predictor\RUNNING_THE_NCAAM_MODEL.md)
+9. [RUNNING_THE_NCAAM_MODEL.md](C:\projects\game_sims\ncaam-predictor\RUNNING_THE_NCAAM_MODEL.md)
+

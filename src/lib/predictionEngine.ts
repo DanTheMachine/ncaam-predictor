@@ -1,4 +1,5 @@
 import { TEAMS } from "../data/ncaaData";
+import type { BettingAnalysis, LiveStatsMap, Odds, PredictionResult, TeamData } from "../types";
 
 const LEAGUE_BASELINES = {
   adjO: 110,
@@ -10,9 +11,33 @@ const LEAGUE_BASELINES = {
   ftr: 33.0,
 };
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-function projectMatchupTotal(home, away, { gameType, neutralSite, homeB2B, awayB2B, odds }) {
+interface MatchupContext {
+  gameType: string
+  neutralSite: boolean
+  homeB2B: boolean
+  awayB2B: boolean
+  odds?: Odds | null
+}
+
+interface MatchupProjection {
+  isTournament: boolean
+  hfa: number
+  possessions: number
+  rawTotal: number
+  total: number
+  marketTotal: number | null
+  marketWeight: number
+  totalConfidence: number
+  totalStdDev: number
+  marginStdDev: number
+  sideConfidence: number
+  hScore: number
+  aScore: number
+}
+
+function projectMatchupTotal(home: TeamData, away: TeamData, { gameType, neutralSite, homeB2B, awayB2B, odds }: MatchupContext): MatchupProjection {
   const isTournament = gameType !== "Regular Season" && gameType !== "Conference Tournament";
   const isConfTourney = gameType === "Conference Tournament";
   const tourneyFactor = isTournament ? 0.965 : isConfTourney ? 0.985 : 1.0;
@@ -30,7 +55,7 @@ function projectMatchupTotal(home, away, { gameType, neutralSite, homeB2B, awayB
     tempoGap * 0.04;
   const possessions = clamp((harmonicTempo * 0.7 + avgTempo * 0.3) + pacePressure, 60, 79);
 
-  const matchupAdj = (team) => {
+  const matchupAdj = (team: TeamData) => {
     const efgAdj = clamp((team.efgPct - LEAGUE_BASELINES.efgPct) * 0.004, -0.9, 1.2);
     const tovAdj = clamp((LEAGUE_BASELINES.tovPct - team.tovPct) * 0.25, -0.8, 0.8);
     const orbAdj = clamp((team.orbPct - LEAGUE_BASELINES.orbPct) * 0.12, -0.6, 0.7);
@@ -102,7 +127,18 @@ function projectMatchupTotal(home, away, { gameType, neutralSite, homeB2B, awayB
 }
 
 // ─── Prediction Engine ───────────────────────────────────────────────────────
-export function predictGame({ homeTeam, awayTeam, gameType, neutralSite, awayB2B, homeB2B, liveStats, odds }) {
+interface PredictGameInput {
+  homeTeam: string
+  awayTeam: string
+  gameType: string
+  neutralSite: boolean
+  awayB2B: boolean
+  homeB2B: boolean
+  liveStats?: LiveStatsMap
+  odds?: Odds | null
+}
+
+export function predictGame({ homeTeam, awayTeam, gameType, neutralSite, awayB2B, homeB2B, liveStats, odds }: PredictGameInput): PredictionResult {
   const fb_h = TEAMS[homeTeam], fb_a = TEAMS[awayTeam];
   const h = liveStats?.[homeTeam] ? { ...fb_h, ...liveStats[homeTeam] } : { ...fb_h };
   const a = liveStats?.[awayTeam] ? { ...fb_a, ...liveStats[awayTeam] } : { ...fb_a };
@@ -156,11 +192,11 @@ export function predictGame({ homeTeam, awayTeam, gameType, neutralSite, awayB2B
 }
 
 // ─── Betting Math ─────────────────────────────────────────────────────────────
-export function americanToImplied(ml) {
+export function americanToImplied(ml: number | null | undefined): number {
   if (!ml || isNaN(ml)) return 0.5;
   return ml < 0 ? (-ml) / (-ml + 100) : 100 / (ml + 100);
 }
-export function normCDF(z) {
+export function normCDF(z: number): number {
   const sign = z < 0 ? -1 : 1;
   const x = Math.abs(z) / Math.sqrt(2);
   const t = 1 / (1 + 0.3275911 * x);
@@ -172,11 +208,11 @@ export function normCDF(z) {
   const erf = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
   return 0.5 * (1 + sign * erf);
 }
-export function mlAmerican(prob) {
+export function mlAmerican(prob: number): string {
   if (prob <= 0 || prob >= 1) return "N/A";
   return prob >= 0.5 ? `-${Math.round(prob / (1 - prob) * 100)}` : `+${Math.round((1 - prob) / prob * 100)}`;
 }
-export function analyzeBetting(result, odds) {
+export function analyzeBetting(result: PredictionResult, odds: Odds): BettingAnalysis {
   const hI  = americanToImplied(odds.homeMoneyline);
   const aI  = americanToImplied(odds.awayMoneyline);
   const vig = hI + aI;
@@ -213,7 +249,6 @@ export function analyzeBetting(result, odds) {
   const ovIC   = ovI / ouVig, unIC = unI / ouVig;
   const spHIC  = spHI / spVig, spAIC = spAI / spVig;
   const spreadSideIsHome = spreadRec !== "pass" && spreadRec === "home";
-  const spreadSideProb   = spreadSideIsHome ? hCover : aCover;
   const spreadSideIC     = spreadSideIsHome ? spHIC : spAIC;
   const kellySpread = spreadRec !== "pass" && spreadEdge > 0 ? (spreadEdge / 100) / (1 - spreadSideIC) * 0.25 : 0;
   const ouSideIC    = ouRec === "over" ? ovIC : unIC;
@@ -232,7 +267,7 @@ export function analyzeBetting(result, odds) {
   };
 }
 
-export function downloadCSV(csv, filename) {
+export function downloadCSV(csv: string, filename: string) {
   const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");

@@ -1,4 +1,5 @@
 import { analyzeBetting, americanToImplied, mlAmerican, normCDF, predictGame } from '../lib/predictionEngine'
+import type { PredictionResult } from '../types'
 
 describe('predictionEngine', () => {
   test('predictGame gives the home team a stronger outlook than the same matchup at a neutral site', () => {
@@ -68,14 +69,24 @@ describe('predictionEngine', () => {
   })
 
   test('analyzeBetting returns recommendations and positive edges when the model meaningfully differs from the market', () => {
-    const result = {
+    const result: PredictionResult = {
       hWinProb: 0.68,
       aWinProb: 0.32,
       hScore: '80.0',
       aScore: '70.0',
       total: '150.0',
+      rawTotal: '150.0',
+      possessions: '69.5',
       marginStdDev: 10,
       totalStdDev: 11,
+      totalConfidence: 0.6,
+      sideConfidence: 0.6,
+      marketBlend: 0,
+      marketTotal: 144.5,
+      projDiff: '10.0',
+      isTournament: false,
+      neutralSite: false,
+      features: [],
     }
 
     const odds = {

@@ -34,3 +34,4 @@ The project now includes:
 - Playwright browser smoke coverage for the main user flow
 
 GitHub Actions runs Vitest, Playwright, and the production build on every push and pull request.
+

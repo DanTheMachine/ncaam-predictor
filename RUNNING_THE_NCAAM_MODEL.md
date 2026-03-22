@@ -10,15 +10,23 @@ Workspace:
 
 Main app file:
 
-- [NCAAPredictor.jsx](C:\projects\game_sims\ncaam-predictor\src\NCAAPredictor.jsx)
+- [NCAAPredictor.tsx](C:\projects\game_sims\ncaam-predictor\src\NCAAPredictor.tsx)
 
 App entry:
 
-- [main.jsx](C:\projects\game_sims\ncaam-predictor\src\main.jsx)
+- [main.tsx](C:\projects\game_sims\ncaam-predictor\src\main.tsx)
 
 Model logic:
 
-- [predictionEngine.js](C:\projects\game_sims\ncaam-predictor\src\lib\predictionEngine.js)
+- [predictionEngine.ts](C:\projects\game_sims\ncaam-predictor\src\lib\predictionEngine.ts)
+
+Predictor orchestration hook:
+
+- [usePredictorState.ts](C:\projects\game_sims\ncaam-predictor\src\hooks\usePredictorState.ts)
+
+Results/model-eval orchestration hook:
+
+- [useResultsWorkspace.ts](C:\projects\game_sims\ncaam-predictor\src\hooks\useResultsWorkspace.ts)
 
 ## 2. What You Need Running
 
@@ -35,6 +43,23 @@ Why that is enough:
 Important note:
 
 - some optional in-app fetches, like the built-in results export from ESPN, still depend on browser network access, but they do not require a separate local backend process
+
+## 2.1 Current Code Structure
+
+The app is no longer one giant screen component.
+
+Current split:
+
+- [NCAAPredictor.tsx](C:\projects\game_sims\ncaam-predictor\src\NCAAPredictor.tsx)
+  - top-level shell, refs, tabs, and wiring
+- [usePredictorState.ts](C:\projects\game_sims\ncaam-predictor\src\hooks\usePredictorState.ts)
+  - predictor-tab orchestration
+- [useResultsWorkspace.ts](C:\projects\game_sims\ncaam-predictor\src\hooks\useResultsWorkspace.ts)
+  - results and model-eval orchestration
+- [PredictorPanels.tsx](C:\projects\game_sims\ncaam-predictor\src\components\PredictorPanels.tsx)
+  - predictor UI sections
+- [ResultsWorkspace.tsx](C:\projects\game_sims\ncaam-predictor\src\components\ResultsWorkspace.tsx)
+  - results/model-eval UI sections
 
 ## 3. First-Time Setup
 
@@ -104,7 +129,7 @@ Typical success state:
 
 Important note:
 
-- if you do not import live stats, the app uses the built-in baseline values in [ncaaData.js](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.js)
+- if you do not import live stats, the app uses the built-in baseline values in [ncaaData.ts](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.ts)
 
 ### 6.2 Enter today's slate
 
@@ -332,7 +357,7 @@ Fixes:
 - paste the full source data including the header row when using standard CSV/TSV format
 - for Barttorvik, use the export/table format the parser expects
 - for KenPom, include the main summary columns such as team, AdjEM, AdjO, AdjD, and AdjT
-- confirm team names match supported aliases in [ncaaData.js](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.js)
+- confirm team names match supported aliases in [ncaaData.js](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.ts)
 
 ### Slate parser matches too few games
 
@@ -346,7 +371,7 @@ Fixes:
 
 - use `AWAY @ HOME` format when possible
 - check for unusual sportsbook naming
-- review alias coverage in [sportsbookParser.js](C:\projects\game_sims\ncaam-predictor\src\lib\sportsbookParser.js)
+- review alias coverage in [sportsbookParser.ts](C:\projects\game_sims\ncaam-predictor\src\lib\sportsbookParser.ts)
 - add missing team aliases if the parser is otherwise behaving correctly
 
 ### Edges look too large across many games
@@ -359,7 +384,7 @@ Fixes:
 
 - confirm you are using the latest version of the prediction engine
 - confirm the imported stats are sane and up to date
-- review current volatility and edge settings in [predictionEngine.js](C:\projects\game_sims\ncaam-predictor\src\lib\predictionEngine.js)
+- review current volatility and edge settings in [predictionEngine.ts](C:\projects\game_sims\ncaam-predictor\src\lib\predictionEngine.ts)
 - compare exported predictions against later results before recalibrating thresholds
 
 ### Results grading is incomplete
@@ -467,4 +492,5 @@ First-time note:
 - Barttorvik and KenPom imports materially affect model outputs, so note which source you used before comparing performance.
 - Results grading works best when predictions and results are exported from the same workflow cycle.
 - Some files in the repo contain encoding artifacts, so exact text matching during maintenance can occasionally be annoying even when the app behavior is fine.
+
 

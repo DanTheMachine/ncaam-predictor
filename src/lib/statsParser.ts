@@ -1,6 +1,7 @@
 import { KENPOM_NAME_MAP, TEAMS } from "../data/ncaaData";
+import type { ImportedTeamStats, ParsedStatsResult } from "../types";
 
-export function parseStatsCSV(raw) {
+export function parseStatsCSV(raw: string): ParsedStatsResult {
   const now   = new Date().toLocaleString("en-US", { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" });
   const lines = raw.trim().split(/\r?\n/).filter(l => l.trim() && !l.startsWith(",,"));
   if (lines.length < 2) throw new Error("Paste appears empty — copy all rows including the header");
@@ -11,7 +12,7 @@ export function parseStatsCSV(raw) {
   // Detect: first non-empty line matches /^\d+\t[A-Za-z]/ with no numeric suffix
   const isNewBart = /^\d+\t[A-Za-z]/.test(lines[0]) && !lines[0].match(/^\d+\t\d/);
   if (isNewBart) {
-    const result = {};
+    const result: Record<string, ImportedTeamStats> = {};
     let updated  = 0;
     let i = 0;
     while (i < lines.length) {
@@ -31,7 +32,7 @@ export function parseStatsCSV(raw) {
         // 9: TORD_rank\tORB     10: ORB_rank\tDRB
         // 11: DRB_rank\tFTR     12: FTR_rank\tFTRD
         // 19: 3PRD_rank\tAdjT   20: AdjT_rank\tWAB
-        const val = (offset) => {
+        const val = (offset: number): number => {
           const l = lines[i + offset];
           if (!l) return NaN;
           const parts = l.split('\t');
@@ -75,7 +76,7 @@ export function parseStatsCSV(raw) {
   const delim   = lines[0].includes("\t") ? "\t" : ",";
   const headers = lines[0].split(delim).map(h => h.trim().replace(/"/g,"").toLowerCase());
 
-  const col = (...names) => {
+  const col = (...names: string[]): number => {
     for (const n of names) {
       const i = headers.findIndex(h => h === n.toLowerCase());
       if (i >= 0) return i;
@@ -112,7 +113,7 @@ export function parseStatsCSV(raw) {
     `For Barttorvik use the T-Rank table; for KenPom use the summary table.`
   );
 
-  const result  = {};
+  const result: Record<string, ImportedTeamStats>  = {};
   let updated   = 0;
 
   for (let i = 1; i < lines.length; i++) {
@@ -122,13 +123,13 @@ export function parseStatsCSV(raw) {
     const abbr    = KENPOM_NAME_MAP[rawName];
     if (!abbr || !TEAMS[abbr]) continue;
 
-    const p = (idx, fallback) => {
+    const p = (idx: number, fallback: number | null): number | null => {
       if (idx < 0 || !cols[idx] || cols[idx] === "") return fallback;
       const v = parseFloat(cols[idx]);
       return isNaN(v) ? fallback : v;
     };
     // Barttorvik eFG% is stored as a decimal (0.534) — convert if < 1
-    const toPercent = (v, fb) => v == null ? fb : v < 1 ? +(v * 100).toFixed(1) : +v.toFixed(1);
+    const toPercent = (v: number | null, fb: number): number => v == null ? fb : v < 1 ? +(v * 100).toFixed(1) : +v.toFixed(1);
 
     const fb    = TEAMS[abbr];
     const adjO  = p(iAdjO, fb.adjO);

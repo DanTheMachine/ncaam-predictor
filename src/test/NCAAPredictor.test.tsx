@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import NCAAPredictor from '../NCAAPredictor.jsx'
+import NCAAPredictor from '../NCAAPredictor'
 import { samplePredictionsCsv, sampleResultsCsv } from './fixtures'
 
-const findButton = (label) =>
+const findButton = (label: string) =>
   screen.getAllByRole('button', { name: (_, element) => element?.textContent?.includes(label) ?? false })[0]
 
 describe('NCAAPredictor', () => {
