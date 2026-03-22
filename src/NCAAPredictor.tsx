@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { BestBetsPanel, SimSummaryPanel, SingleGameWorkspace, SlateControlsPanel, SlateTablePanel, StatsImportPanel } from "./components/PredictorPanels";
+import { BestBetsPanel, DebugPanel, SimSummaryPanel, SingleGameWorkspace, SlateControlsPanel, SlateTablePanel, StatsImportPanel } from "./components/PredictorPanels";
 import { ModelEvalTab, ResultsTrackerTab } from "./components/ResultsWorkspace";
 import { TEAMS } from "./data/ncaaData";
 import { usePredictorState } from "./hooks/usePredictorState";
@@ -102,6 +102,7 @@ export default function NCAAPredictor() {
     resetEditedOdds,
     simSummaryRows,
     bestBets,
+    debugRows,
     confList,
   } = usePredictorState();
 
@@ -324,6 +325,7 @@ export default function NCAAPredictor() {
               statsUpdated={statsUpdated}
             />
             <BestBetsPanel bets={bestBets} />
+            <DebugPanel rows={debugRows} />
           </>
         )}
 

@@ -298,6 +298,7 @@ export const parseSbookWithDiagnostics = (raw: string): SportsbookParseDiagnosti
   const sbIsRotNum = (line: string): boolean => /^\d{3,7}$/.test(line);
   const sbIsSpread = (line: string): boolean => /^[+-]\s*\d|^Pick$/i.test(line);
   const sbIsJuice = (line: string): boolean => /^[+-]\s*1\d{2}$/.test(line);
+  const sbIsMoneyline = (line: string): boolean => /^[+-]\s*\d{3,4}$/.test(line);
   const sbIsOU = (line: string): boolean => /^[OoUu]\s+\d/.test(line);
   const sbIsMeta = (line: string): boolean =>
     sbIsTime(line) ||
@@ -358,7 +359,7 @@ export const parseSbookWithDiagnostics = (raw: string): SportsbookParseDiagnosti
 
         if (index + 6 < lines.length) {
           const mlLine = lines[index + 6];
-          if (sbIsJuice(mlLine) || /^[+-]\d{3,4}$/.test(mlLine)) {
+          if (sbIsJuice(mlLine) || sbIsMoneyline(mlLine)) {
             ml = sbParseNum(mlLine);
           }
         }

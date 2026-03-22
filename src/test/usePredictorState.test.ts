@@ -1,7 +1,26 @@
 import { act, renderHook } from "@testing-library/react";
+import { vi } from "vitest";
 import { usePredictorState } from "../hooks/usePredictorState";
 
 describe("usePredictorState", () => {
+  test("keeps the slate date aligned to the current day when the app stays open overnight", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-21T23:58:00-07:00"));
+
+    const { result } = renderHook(() => usePredictorState());
+
+    expect(result.current.slateDate).toBe("2026-03-21");
+
+    act(() => {
+      vi.setSystemTime(new Date("2026-03-22T00:01:00-07:00"));
+      vi.advanceTimersByTime(60_000);
+    });
+
+    expect(result.current.slateDate).toBe("2026-03-22");
+
+    vi.useRealTimers();
+  });
+
   test("loads a bulk slate and can apply manual odds to single-game state", () => {
     const { result } = renderHook(() => usePredictorState());
 

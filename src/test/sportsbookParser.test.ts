@@ -53,4 +53,35 @@ describe('sportsbookParser', () => {
       underOdds: -112,
     })
   })
+
+  test('preserves pasted moneylines that include spaces after the sign', () => {
+    const raw = [
+      'CBS9:10 AM',
+      'MIAMI FLORIDA',
+      '817',
+      '+ 8',
+      '- 108',
+      'O 147.5',
+      '- 108',
+      '+ 257',
+      'PURDUE',
+      '818',
+      '- 8',
+      '- 108',
+      'U 147.5',
+      '- 108',
+      '- 338',
+    ].join('\n')
+
+    const games = parseSbookFormat(raw)
+
+    expect(games).toHaveLength(1)
+    expect(games[0].odds).toMatchObject({
+      awayMoneyline: 257,
+      homeMoneyline: -338,
+      spread: -8,
+      spreadAwayOdds: -108,
+      spreadHomeOdds: -108,
+    })
+  })
 })

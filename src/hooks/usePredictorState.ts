@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GAME_TYPES, KENPOM_NAME_MAP, TEAMS } from "../data/ncaaData";
 import { analyzeBetting, downloadCSV, mlAmerican, predictGame } from "../lib/predictionEngine";
 import { parseStatsCSV } from "../lib/statsParser";
@@ -45,6 +45,24 @@ interface BestBetRow {
   line: string;
   proj: string;
   edgeTxt: string;
+}
+
+interface DebugRow {
+  matchup: string;
+  mlModelPct: number;
+  mlMarketPct: number;
+  mlEdgePct: number;
+  mlPick: string;
+  spreadModelPct: number;
+  spreadMarketPct: number;
+  spreadEdgePct: number;
+  spreadPoints: number;
+  spreadPick: string;
+  totalModel: number;
+  totalMarket: number;
+  totalPointsEdge: number;
+  totalProbEdgePct: number;
+  totalPick: string;
 }
 
 const normalizeTeamKey = (value: unknown): string =>
@@ -145,7 +163,8 @@ export function usePredictorState() {
   });
   const [slateNeutral, setSlateNeutral] = useState(false);
   const [slateGameType, setSlateGameType] = useState("Regular Season");
-  const [slateDate, setSlateDate] = useState(localToday);
+  const [slateDate, setSlateDateState] = useState(localToday);
+  const autoSlateDateRef = useRef(slateDate);
   const [linesRows, setLinesRows] = useState<SlateTableRow[]>([]);
   const [schedStatus, setSchedStatus] = useState("");
   const [simsRunning, setSimsRunning] = useState(false);
@@ -175,6 +194,25 @@ export function usePredictorState() {
   const aColor = getColor(awayTeam);
   const hTeam: TeamData = liveStats[homeTeam] ? { ...TEAMS[homeTeam], ...liveStats[homeTeam] } : TEAMS[homeTeam];
   const aTeam: TeamData = liveStats[awayTeam] ? { ...TEAMS[awayTeam], ...liveStats[awayTeam] } : TEAMS[awayTeam];
+
+  useEffect(() => {
+    const syncSlateDate = () => {
+      const today = localToday();
+      setSlateDateState((prev) => {
+        const next = prev === autoSlateDateRef.current ? today : prev;
+        autoSlateDateRef.current = today;
+        return next;
+      });
+    };
+
+    syncSlateDate();
+    const intervalId = window.setInterval(syncSlateDate, 60_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  const setSlateDate = (value: string) => {
+    setSlateDateState(value);
+  };
 
   const applyImportedStats = (raw: string) => {
     const { stats, count, timestamp, source } = parseStatsCSV(raw);
@@ -674,6 +712,43 @@ export function usePredictorState() {
     return bets;
   })();
 
+  const debugRows = linesRows
+    .filter((row) => row.simResult && row.editedOdds && row.editedOdds.homeMoneyline != null && row.editedOdds.overUnder != null)
+    .map((row) => {
+      const sim = row.simResult as PredictionResult;
+      const od = row.editedOdds as Odds;
+      const ba = analyzeBetting(sim, od);
+      const mlIsHome = ba.mlValueSide === "home";
+      const spreadIsHome = ba.spreadRec === "home";
+      const spreadProjection = spreadIsHome
+        ? parseFloat(sim.projDiff) + od.spread
+        : -(parseFloat(sim.projDiff) + od.spread);
+      const totalProbEdge = ba.ouRec === "over"
+        ? (ba.pOver - ba.ovIC) * 100
+        : ba.ouRec === "under"
+          ? (ba.pUnder - ba.unIC) * 100
+          : Math.max(ba.pOver - ba.ovIC, ba.pUnder - ba.unIC) * 100;
+
+      return {
+        matchup: `${row.game.awayAbbr} @ ${row.game.homeAbbr}`,
+        mlModelPct: (mlIsHome ? sim.hWinProb : sim.aWinProb) * 100,
+        mlMarketPct: (mlIsHome ? ba.homeImpliedProb : ba.awayImpliedProb) * 100,
+        mlEdgePct: ba.mlValuePct,
+        mlPick: ba.mlValueSide === "none" ? "PASS" : `${mlIsHome ? row.game.homeAbbr : row.game.awayAbbr} ML`,
+        spreadModelPct: (spreadIsHome ? ba.homeCoverProb : ba.awayCoverProb) * 100,
+        spreadMarketPct: (spreadIsHome ? ba.spHIC : ba.spAIC) * 100,
+        spreadEdgePct: ba.spreadEdge,
+        spreadPoints: spreadProjection,
+        spreadPick: ba.spreadRec === "pass" ? "PASS" : `${spreadIsHome ? row.game.homeAbbr : row.game.awayAbbr} ${spreadIsHome ? od.spread : -od.spread}`,
+        totalModel: parseFloat(sim.total),
+        totalMarket: od.overUnder,
+        totalPointsEdge: ba.ouEdge,
+        totalProbEdgePct: totalProbEdge,
+        totalPick: ba.ouRec === "pass" ? "PASS" : ba.ouRec.toUpperCase(),
+      };
+    })
+    .sort((a, b) => Math.max(b.mlEdgePct, b.spreadEdgePct, Math.abs(b.totalProbEdgePct)) - Math.max(a.mlEdgePct, a.spreadEdgePct, Math.abs(a.totalProbEdgePct)));
+
   const confList = [...new Set(Object.values(TEAMS).map((t) => t.conf))].sort();
 
   return {
@@ -760,6 +835,7 @@ export function usePredictorState() {
     resetEditedOdds,
     simSummaryRows,
     bestBets,
+    debugRows,
     confList,
   };
 }

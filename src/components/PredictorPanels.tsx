@@ -856,6 +856,75 @@ export function BestBetsPanel({ bets }: BestBetsPanelProps) {
   );
 }
 
+interface DebugRow {
+  matchup: string;
+  mlModelPct: number;
+  mlMarketPct: number;
+  mlEdgePct: number;
+  mlPick: string;
+  spreadModelPct: number;
+  spreadMarketPct: number;
+  spreadEdgePct: number;
+  spreadPoints: number;
+  spreadPick: string;
+  totalModel: number;
+  totalMarket: number;
+  totalPointsEdge: number;
+  totalProbEdgePct: number;
+  totalPick: string;
+}
+
+interface DebugPanelProps {
+  rows: DebugRow[];
+}
+
+export function DebugPanel({ rows }: DebugPanelProps) {
+  if (!rows.length) return null;
+
+  return (
+    <div style={{ background: "rgba(255,200,50,0.02)", border: "1px solid rgba(245,197,24,0.2)", borderRadius: 8, padding: 16, marginTop: 16 }}>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#f5c518", letterSpacing: 4, marginBottom: 2 }}>MODEL DEBUG</div>
+        <div style={{ fontSize: 8, color: "#b28a57", letterSpacing: 2 }}>RAW MODEL VS MARKET INPUTS FOR EACH SIMMED GAME</div>
+      </div>
+      <div style={{ overflowX: "auto", borderRadius: 5, border: "1px solid #1a1200" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "monospace", fontSize: 10 }}>
+          <thead>
+            <tr style={{ background: "#080500" }}>
+              {["Matchup", "ML Pick", "ML Model", "ML Mkt", "ML Edge", "SPR Pick", "SPR Model", "SPR Mkt", "SPR Edge", "SPR Pts", "O/U Pick", "Model Tot", "Vegas Tot", "Tot Pts", "Tot Edge"].map((heading) => (
+                <th key={heading} style={{ padding: "6px", textAlign: "left", fontSize: 8, color: "#b28a57", letterSpacing: 1, borderBottom: "1px solid #1a1200", whiteSpace: "nowrap" }}>
+                  {heading}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${row.matchup}-${index}`} style={{ background: index % 2 === 0 ? "#0a0700" : "#080500" }}>
+                <td style={{ padding: "5px 6px", borderBottom: "1px solid #120e00", color: "#f0e8d0", whiteSpace: "nowrap" }}>{row.matchup}</td>
+                <td style={{ padding: "5px 6px", borderBottom: "1px solid #120e00", color: row.mlPick === "PASS" ? "#6b5232" : "#60a5fa" }}>{row.mlPick}</td>
+                <td style={{ padding: "5px 6px", borderBottom: "1px solid #120e00", color: "#c8a850" }}>{row.mlModelPct.toFixed(1)}%</td>
+                <td style={{ padding: "5px 6px", borderBottom: "1px solid #120e00", color: "#b28a57" }}>{row.mlMarketPct.toFixed(1)}%</td>
+                <td style={{ padding: "5px 6px", borderBottom: "1px solid #120e00", color: row.mlEdgePct > 0 ? "#4ade80" : "#f87171" }}>{row.mlEdgePct > 0 ? "+" : ""}{row.mlEdgePct.toFixed(1)}%</td>
+                <td style={{ padding: "5px 6px", borderBottom: "1px solid #120e00", color: row.spreadPick === "PASS" ? "#6b5232" : "#f59e0b" }}>{row.spreadPick}</td>
+                <td style={{ padding: "5px 6px", borderBottom: "1px solid #120e00", color: "#c8a850" }}>{row.spreadModelPct.toFixed(1)}%</td>
+                <td style={{ padding: "5px 6px", borderBottom: "1px solid #120e00", color: "#b28a57" }}>{row.spreadMarketPct.toFixed(1)}%</td>
+                <td style={{ padding: "5px 6px", borderBottom: "1px solid #120e00", color: row.spreadEdgePct > 0 ? "#4ade80" : "#f87171" }}>{row.spreadEdgePct > 0 ? "+" : ""}{row.spreadEdgePct.toFixed(1)}%</td>
+                <td style={{ padding: "5px 6px", borderBottom: "1px solid #120e00", color: row.spreadPoints > 0 ? "#4ade80" : "#f87171" }}>{row.spreadPoints > 0 ? "+" : ""}{row.spreadPoints.toFixed(1)}</td>
+                <td style={{ padding: "5px 6px", borderBottom: "1px solid #120e00", color: row.totalPick === "PASS" ? "#6b5232" : "#a78bfa" }}>{row.totalPick}</td>
+                <td style={{ padding: "5px 6px", borderBottom: "1px solid #120e00", color: "#c8a850" }}>{row.totalModel.toFixed(1)}</td>
+                <td style={{ padding: "5px 6px", borderBottom: "1px solid #120e00", color: "#b28a57" }}>{row.totalMarket.toFixed(1)}</td>
+                <td style={{ padding: "5px 6px", borderBottom: "1px solid #120e00", color: row.totalPointsEdge > 0 ? "#4ade80" : "#f87171" }}>{row.totalPointsEdge > 0 ? "+" : ""}{row.totalPointsEdge.toFixed(1)}</td>
+                <td style={{ padding: "5px 6px", borderBottom: "1px solid #120e00", color: row.totalProbEdgePct > 0 ? "#4ade80" : "#f87171" }}>{row.totalProbEdgePct > 0 ? "+" : ""}{row.totalProbEdgePct.toFixed(1)}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 interface SingleGameWorkspaceProps {
   cardStyle: Record<string, string | number>;
   selectStyle: Record<string, string | number>;

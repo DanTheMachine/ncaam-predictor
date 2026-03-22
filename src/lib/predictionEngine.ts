@@ -1,6 +1,13 @@
 import { TEAMS } from "../data/ncaaData";
 import type { BettingAnalysis, LiveStatsMap, Odds, PredictionResult, TeamData } from "../types";
 
+const ML_EDGE_THRESHOLD = 0.065;
+const SPREAD_EDGE_THRESHOLD = 0.055;
+const TOTAL_EDGE_THRESHOLD = 0.055;
+const ML_PROBABILITY_BUFFER = 0.02;
+const SPREAD_POINT_BUFFER = 1.0;
+const TOTAL_POINT_BUFFER = 3.0;
+
 const LEAGUE_BASELINES = {
   adjO: 110,
   adjD: 100,
@@ -91,23 +98,23 @@ function projectMatchupTotal(home: TeamData, away: TeamData, { gameType, neutral
   const scoreShift = (total - rawTotal) / 2;
 
   const totalStdDev = clamp(
-    12.0 +
+    13.8 +
     tempoGap * 0.22 +
     Math.abs((home.efgPct + away.efgPct) - (LEAGUE_BASELINES.efgPct * 2)) * 0.06 +
-    (homeB2B || awayB2B ? 0.75 : 0),
-    11.5,
-    17.5
+    (homeB2B || awayB2B ? 0.9 : 0),
+    13.0,
+    19.0
   );
   const marginStdDev = clamp(
-    10.8 +
+    12.4 +
     possessions * 0.045 +
     tempoGap * 0.06 +
-    (1 - totalConfidence) * 5.5 +
-    (homeB2B || awayB2B ? 0.5 : 0),
-    10.5,
-    16.5
+    (1 - totalConfidence) * 6.2 +
+    (homeB2B || awayB2B ? 0.7 : 0),
+    12.0,
+    18.0
   );
-  const sideConfidence = clamp(1 - ((marginStdDev - 8.5) / 5.0), 0.35, 0.82);
+  const sideConfidence = clamp(1 - ((marginStdDev - 11.5) / 8.5), 0.35, 0.82);
 
   return {
     isTournament,
@@ -219,7 +226,13 @@ export function analyzeBetting(result: PredictionResult, odds: Odds): BettingAna
   const hIC = hI / vig, aIC = aI / vig;
   const hEdge = result.hWinProb - hIC;
   const aEdge = result.aWinProb - aIC;
-  const mlSide = hEdge > 0.025 ? "home" : aEdge > 0.025 ? "away" : "none";
+  const homeMlQualifies =
+    result.hWinProb >= 0.5 + ML_PROBABILITY_BUFFER &&
+    hEdge > ML_EDGE_THRESHOLD;
+  const awayMlQualifies =
+    result.aWinProb >= 0.5 + ML_PROBABILITY_BUFFER &&
+    aEdge > ML_EDGE_THRESHOLD;
+  const mlSide = homeMlQualifies ? "home" : awayMlQualifies ? "away" : "none";
   const mlPct  = Math.max(hEdge, aEdge) * 100;
 
   const diff     = parseFloat(result.hScore) - parseFloat(result.aScore);
@@ -231,12 +244,19 @@ export function analyzeBetting(result: PredictionResult, odds: Odds): BettingAna
   const spVig    = spHI + spAI;
   const spHEdge  = hCover - spHI / spVig;
   const spAEdge  = aCover - spAI / spVig;
-  const spreadRec  = spHEdge > 0.03 ? "home" : spAEdge > 0.03 ? "away" : "pass";
+  const homeSpreadProjection = diff + (odds.spread ?? -4);
+  const awaySpreadProjection = -homeSpreadProjection;
+  const homeSpreadQualifies =
+    homeSpreadProjection >= SPREAD_POINT_BUFFER &&
+    spHEdge > SPREAD_EDGE_THRESHOLD;
+  const awaySpreadQualifies =
+    awaySpreadProjection >= SPREAD_POINT_BUFFER &&
+    spAEdge > SPREAD_EDGE_THRESHOLD;
+  const spreadRec  = homeSpreadQualifies ? "home" : awaySpreadQualifies ? "away" : "pass";
   const spreadEdge = Math.max(spHEdge, spAEdge) * 100;
 
   const proj   = parseFloat(result.total);
   const ouEdge = proj - odds.overUnder;
-  const ouRec  = ouEdge > 2 ? "over" : ouEdge < -2 ? "under" : "pass";
   const totalStd = result.totalStdDev || 11.5;
   const pOver  = 1 - normCDF((odds.overUnder - proj) / totalStd);
   const pUnder = 1 - pOver;
@@ -245,6 +265,13 @@ export function analyzeBetting(result: PredictionResult, odds: Odds): BettingAna
   const ouVig  = ovI + unI;
   const ouOverEdge  = pOver  - ovI / ouVig;
   const ouUnderEdge = pUnder - unI / ouVig;
+  const overQualifies =
+    ouEdge >= TOTAL_POINT_BUFFER &&
+    ouOverEdge > TOTAL_EDGE_THRESHOLD;
+  const underQualifies =
+    ouEdge <= -TOTAL_POINT_BUFFER &&
+    ouUnderEdge > TOTAL_EDGE_THRESHOLD;
+  const ouRec  = overQualifies ? "over" : underQualifies ? "under" : "pass";
   const ouEdgePct   = (ouRec === "over" ? ouOverEdge : ouRec === "under" ? ouUnderEdge : Math.max(ouOverEdge, ouUnderEdge)) * 100;
   const ovIC   = ovI / ouVig, unIC = unI / ouVig;
   const spHIC  = spHI / spVig, spAIC = spAI / spVig;

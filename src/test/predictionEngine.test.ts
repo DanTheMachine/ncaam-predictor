@@ -110,6 +110,81 @@ describe('predictionEngine', () => {
     expect(analysis.ouEdgePct).toBeGreaterThan(0)
   })
 
+  test('analyzeBetting stays conservative on totals when the projection gap is modest', () => {
+    const result: PredictionResult = {
+      hWinProb: 0.57,
+      aWinProb: 0.43,
+      hScore: '74.0',
+      aScore: '72.0',
+      total: '146.8',
+      rawTotal: '146.8',
+      possessions: '68.1',
+      marginStdDev: 13.5,
+      totalStdDev: 15.5,
+      totalConfidence: 0.55,
+      sideConfidence: 0.5,
+      marketBlend: 0.2,
+      marketTotal: 144.5,
+      projDiff: '2.0',
+      isTournament: false,
+      neutralSite: false,
+      features: [],
+    }
+
+    const odds = {
+      homeMoneyline: -130,
+      awayMoneyline: +110,
+      spread: -2.5,
+      spreadHomeOdds: -110,
+      spreadAwayOdds: -110,
+      overUnder: 144.5,
+      overOdds: -110,
+      underOdds: -110,
+    }
+
+    const analysis = analyzeBetting(result, odds)
+
+    expect(analysis.ouRec).toBe('pass')
+  })
+
+  test('analyzeBetting suppresses side recommendations when the model edge is too small', () => {
+    const result: PredictionResult = {
+      hWinProb: 0.57,
+      aWinProb: 0.43,
+      hScore: '76.0',
+      aScore: '74.0',
+      total: '150.0',
+      rawTotal: '150.0',
+      possessions: '69.0',
+      marginStdDev: 14.8,
+      totalStdDev: 15.8,
+      totalConfidence: 0.58,
+      sideConfidence: 0.49,
+      marketBlend: 0.2,
+      marketTotal: 148.5,
+      projDiff: '2.0',
+      isTournament: false,
+      neutralSite: false,
+      features: [],
+    }
+
+    const odds = {
+      homeMoneyline: -110,
+      awayMoneyline: +145,
+      spread: -1.5,
+      spreadHomeOdds: -110,
+      spreadAwayOdds: -110,
+      overUnder: 148.5,
+      overOdds: -110,
+      underOdds: -110,
+    }
+
+    const analysis = analyzeBetting(result, odds)
+
+    expect(analysis.mlValueSide).toBe('none')
+    expect(analysis.spreadRec).toBe('pass')
+  })
+
   test('moneyline helpers stay internally consistent', () => {
     expect(americanToImplied(-150)).toBeCloseTo(0.6, 3)
     expect(americanToImplied(+150)).toBeCloseTo(0.4, 3)
