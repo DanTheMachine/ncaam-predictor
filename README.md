@@ -4,6 +4,10 @@
 
 React + Vite app for projecting NCAA men's basketball games, comparing those projections against sportsbook lines, and reviewing model performance over time.
 
+Runbook:
+
+- [Running The NCAAM Predictor](C:\projects\game_sims\ncaam-predictor\RUNNING_THE_NCAAM_MODEL.md)
+
 ## Features
 
 - Single-game prediction with market comparison

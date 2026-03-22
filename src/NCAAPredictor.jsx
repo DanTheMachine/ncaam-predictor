@@ -1262,7 +1262,15 @@ export default function NCAAPredictor() {
 
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
                 {[[homeTeam,result.hWinProb,hColor,odds?.homeMoneyline],[awayTeam,result.aWinProb,aColor,odds?.awayMoneyline]].map(([abbr,prob,col,vegaML]) => {
-                  const edge = vegaML ? (prob - americanToImplied(vegaML)) * 100 : null;
+                  const edge = vegaML && odds?.homeMoneyline != null && odds?.awayMoneyline != null
+                    ? (() => {
+                        const thisImplied = americanToImplied(vegaML);
+                        const otherML = abbr === homeTeam ? odds.awayMoneyline : odds.homeMoneyline;
+                        const otherImplied = americanToImplied(otherML);
+                        const vig = thisImplied + otherImplied;
+                        return vig > 0 ? (prob - (thisImplied / vig)) * 100 : null;
+                      })()
+                    : null;
                   return (
                     <div key={abbr} style={{ background:"rgba(255,200,50,0.03)", border:`1px solid ${col}28`, borderRadius:6, padding:"10px 12px" }}>
                       <div style={{ fontSize:9, color:"#b9925c", letterSpacing:2, marginBottom:8 }}>{abbr} MONEYLINE</div>
@@ -1719,6 +1727,7 @@ export default function NCAAPredictor() {
     </div>
   );
 }
+
 
 
 

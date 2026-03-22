@@ -159,7 +159,9 @@ It is bounded between `0.38` and `0.72`.
 - shooting deviation from league average
 - back-to-back flags
 
-It is bounded between `9.8` and `15.0`.
+The current implementation intentionally uses a wider range than earlier versions so totals do not produce oversized probability edges from modest projection gaps.
+
+It is bounded between `11.5` and `17.5`.
 
 ### 3.3 Margin standard deviation
 
@@ -171,7 +173,9 @@ It is bounded between `9.8` and `15.0`.
 - model confidence
 - back-to-back flags
 
-It is bounded between `8.5` and `13.5`.
+The current implementation intentionally uses a wider range than earlier versions so Money Line and spread edges are less aggressive.
+
+It is bounded between `10.5` and `16.5`.
 
 The model also derives `sideConfidence` from margin volatility.
 
@@ -295,6 +299,11 @@ Recommendation rule:
 Displayed edge:
 
 - `mlValuePct = max(homeEdge, awayEdge) * 100`
+
+Important display note:
+
+- the app now de-vigs both Money Line sides before showing edge in the single-game view
+- this keeps the single-game display aligned with the main betting engine and avoids overstating edge by comparing against raw implied odds
 
 ## 9. Spread Bet Recommendation
 
@@ -605,28 +614,28 @@ Final projected margin:
 
 ### 11.6 Step 5: Convert projected margin into Money Line win probability
 
-Assume `marginStdDev = 10.9`.
+Assume `marginStdDev = 13.2`.
 
 Z-score:
 
 - Projected margin: `10.6`
-- Margin standard deviation: `10.9`
+- Margin standard deviation: `13.2`
 - Formula: `projected_margin / marginStdDev = z_score`
-- Substitution: `10.6 / 10.9`
-- Result: `0.97`
+- Substitution: `10.6 / 13.2`
+- Result: `0.80`
 
 Home win probability:
 
-- `normCDF(0.97) ≈ 0.834`
+- `normCDF(0.80) ≈ 0.788`
 
 Away win probability:
 
-- `1 - 0.834 = 0.166`
+- `1 - 0.788 = 0.212`
 
 So the model says:
 
-- home wins about `83.4%`
-- away wins about `16.6%`
+- home wins about `78.8%`
+- away wins about `21.2%`
 
 ### 11.7 Step 6: Compare Money Line probability to sportsbook terms
 
@@ -650,12 +659,12 @@ Vig-adjusted probabilities:
 
 Model edges:
 
-- home edge `0.834 - 0.604 = 0.230`
-- away edge `0.166 - 0.396 = -0.230`
+- home edge `0.788 - 0.604 = 0.184`
+- away edge `0.212 - 0.396 = -0.184`
 
 Decision:
 
-- home Money Line is positive by `23.0%`
+- home Money Line is positive by `18.4%`
 - threshold is only `2.5%`
 - recommendation: `home ML`
 
@@ -669,16 +678,16 @@ Home cover probability:
 
 - Projected margin: `10.6`
 - Home spread: `-3.5`
-- Margin standard deviation: `10.9`
+- Margin standard deviation: `13.2`
 - Formula: `normCDF((projected_margin + home_spread) / marginStdDev) = homeCoverProb`
-- Substitution: `normCDF((10.6 - 3.5) / 10.9)`
-- Intermediate step: `normCDF(7.1 / 10.9)`
-- Z-score: `normCDF(0.651)`
-- Result: `0.742`
+- Substitution: `normCDF((10.6 - 3.5) / 13.2)`
+- Intermediate step: `normCDF(7.1 / 13.2)`
+- Z-score: `normCDF(0.538)`
+- Result: `0.705`
 
 Away cover probability:
 
-- `1 - 0.742 = 0.258`
+- `1 - 0.705 = 0.295`
 
 Spread odds `-110 / -110`:
 
@@ -688,12 +697,12 @@ Spread odds `-110 / -110`:
 
 Spread edges:
 
-- home spread edge `0.742 - 0.500 = 0.242`
-- away spread edge `0.258 - 0.500 = -0.242`
+- home spread edge `0.705 - 0.500 = 0.205`
+- away spread edge `0.295 - 0.500 = -0.205`
 
 Decision:
 
-- home ATS edge is `24.2%`
+- home ATS edge is `20.5%`
 - threshold is `3.0%`
 - recommendation: `home -3.5`
 
@@ -722,33 +731,33 @@ Decision from point-gap rule:
 
 Now convert to probability using total volatility.
 
-Assume `totalStdDev = 11.2`.
+Assume `totalStdDev = 13.4`.
 
 Over probability:
 
 - Sportsbook total: `145.5`
 - Projected total: `152.3`
-- Total standard deviation: `11.2`
+- Total standard deviation: `13.4`
 - Formula: `1 - normCDF((sportsbookTotal - projectedTotal) / totalStdDev) = pOver`
-- Substitution: `1 - normCDF((145.5 - 152.3) / 11.2)`
-- Intermediate step: `1 - normCDF(-0.607)`
-- Intermediate step: `1 - 0.272`
-- Result: `0.728`
+- Substitution: `1 - normCDF((145.5 - 152.3) / 13.4)`
+- Intermediate step: `1 - normCDF(-0.507)`
+- Intermediate step: `1 - 0.306`
+- Result: `0.694`
 
 Under probability:
 
-- `1 - 0.728 = 0.272`
+- `1 - 0.694 = 0.306`
 
 With `-110 / -110`, vig-adjusted over probability is about `0.500`.
 
 Total edge:
 
-- `0.728 - 0.500 = 0.228`
+- `0.694 - 0.500 = 0.194`
 
 Decision:
 
 - recommendation: `over 145.5`
-- probability edge: `22.8%`
+- probability edge: `19.4%`
 
 ### 11.10 Example summary
 
@@ -756,7 +765,7 @@ Using this worked example, the model would likely produce:
 
 - projected score: home `81.5`, away `70.9`
 - projected total: `152.3`
-- home win probability: `83.4%`
+- home win probability: `78.8%`
 - Money Line recommendation: `home`
 - spread recommendation: `home -3.5`
 - total recommendation: `over 145.5`
@@ -799,6 +808,7 @@ These are not pure full-Kelly stakes. The model scales them down to roughly 25% 
 
 - Totals are partially market-calibrated when an O/U line is available.
 - Money Line and spread are not directly market-blended; they come from the projected scoring distribution.
+- The current version uses wider margin and total volatility assumptions than earlier versions to reduce overstated edges across full slates.
 - Imported Barttorvik or KenPom data can materially change projections versus the built-in team baselines.
 - Team coverage and alias matching matter. If a team is not in the base dataset or does not resolve from sportsbook text, no prediction is generated for that game.
 

@@ -66,21 +66,21 @@ function projectMatchupTotal(home, away, { gameType, neutralSite, homeB2B, awayB
   const scoreShift = (total - rawTotal) / 2;
 
   const totalStdDev = clamp(
-    10.5 +
-    tempoGap * 0.18 +
-    Math.abs((home.efgPct + away.efgPct) - (LEAGUE_BASELINES.efgPct * 2)) * 0.05 +
-    (homeB2B || awayB2B ? 0.5 : 0),
-    9.8,
-    15.0
+    12.0 +
+    tempoGap * 0.22 +
+    Math.abs((home.efgPct + away.efgPct) - (LEAGUE_BASELINES.efgPct * 2)) * 0.06 +
+    (homeB2B || awayB2B ? 0.75 : 0),
+    11.5,
+    17.5
   );
   const marginStdDev = clamp(
-    8.8 +
-    possessions * 0.035 +
-    tempoGap * 0.04 +
-    (1 - totalConfidence) * 4.5 +
-    (homeB2B || awayB2B ? 0.35 : 0),
-    8.5,
-    13.5
+    10.8 +
+    possessions * 0.045 +
+    tempoGap * 0.06 +
+    (1 - totalConfidence) * 5.5 +
+    (homeB2B || awayB2B ? 0.5 : 0),
+    10.5,
+    16.5
   );
   const sideConfidence = clamp(1 - ((marginStdDev - 8.5) / 5.0), 0.35, 0.82);
 

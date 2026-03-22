@@ -13,8 +13,14 @@ The app supports:
 - exporting predictions/results CSVs
 - a results tracker for grading past picks
 - a dedicated Model Eval tab for ROI review
+- local Vitest and Playwright test coverage
+- GitHub Actions CI for tests and build
 
 The most important user-facing screen is the predictor app in [NCAAPredictor.jsx](C:\projects\game_sims\ncaam-predictor\src\NCAAPredictor.jsx).
+
+There is also now an operational runbook for using the app locally:
+
+- [RUNNING_THE_NCAAM_MODEL.md](C:\projects\game_sims\ncaam-predictor\RUNNING_THE_NCAAM_MODEL.md)
 
 ## Important Current Note
 
@@ -54,6 +60,22 @@ The project was refactored from one very large component into smaller modules.
   - betting edge analysis
   - CSV download helper
 
+### Testing and CI
+
+- [src/test](C:\projects\game_sims\ncaam-predictor\src\test)
+  - Vitest component tests for the active UI
+  - unit tests for prediction engine math and parser behavior
+
+- [tests/e2e](C:\projects\game_sims\ncaam-predictor\tests\e2e)
+  - Playwright browser smoke tests
+
+- [playwright.config.js](C:\projects\game_sims\ncaam-predictor\playwright.config.js)
+  - local Playwright configuration
+
+- [ci.yml](C:\projects\game_sims\ncaam-predictor\.github\workflows\ci.yml)
+  - GitHub Actions workflow
+  - split jobs for Vitest, production build, and Playwright E2E
+
 ### Parsing
 
 - [statsParser.js](C:\projects\game_sims\ncaam-predictor\src\lib\statsParser.js)
@@ -92,11 +114,17 @@ Key outputs:
 - `totalConfidence`
 - `sideConfidence`
 
+Recent calibration direction:
+
+- `totalStdDev` and `marginStdDev` were widened to make the model less aggressive when turning projection gaps into betting probabilities
+- this was done after observing too many large edges across full slates
+
 ### Money Line model
 
 - projected margin is converted into win probability with a normal CDF
 - the model compares projected home/away win probability to vig-adjusted Money Line implied probabilities
 - edge threshold for recommendation is currently `2.5%`
+- the single-game UI display now also de-vigs both Money Line sides before showing edge, so it matches the main betting engine
 
 ### Spread model
 
@@ -163,6 +191,7 @@ Current behavior:
 - uses small additive four-factor adjustments instead of heavily multiplying offense again
 - can partially blend toward market totals when odds are present
 - computes `totalStdDev` and confidence values
+- now uses wider total volatility assumptions than earlier revisions to reduce overstated O/U edges
 
 ### Spread and Money Line changes
 
@@ -171,6 +200,14 @@ The old fixed logistic/capped approach was replaced with:
 - matchup-specific margin volatility
 - normal-distribution style conversion from projected margin to win/cover probability
 - shared distribution logic across side and ATS
+- recent follow-up work widened margin volatility assumptions to reduce oversized ML and ATS edges across large slates
+
+### Edge display fix
+
+Recent bug fix:
+
+- the single-game Money Line edge display previously compared model win probability to raw implied odds
+- it now compares against vig-adjusted market probabilities, matching the core betting engine
 
 ### Parser diagnostics
 
@@ -284,6 +321,16 @@ The projection engine is materially better than the original simple version, but
 - margin variance
 - bet edge thresholds
 
+### 6. Current edge thresholds are heuristic
+
+Current recommendation thresholds still exist, but they should not be treated as fully calibrated:
+
+- Money Line edge threshold: `2.5%`
+- Spread edge threshold: `3.0%`
+- total directional threshold: `2.0` points
+
+The current plan is to recalibrate after collecting more prediction/results CSV sets rather than tuning blindly.
+
 ## Practical Editing Guidance
 
 When modifying the project:
@@ -297,6 +344,10 @@ When modifying the project:
 
 - dev server: `npm run dev`
 - production build: `npm run build`
+- lint: `npm run lint`
+- Vitest: `npm run test`
+- Vitest UI: `npm run test:ui`
+- Playwright E2E: `npm run test:e2e`
 
 ## Recommended First Reads For Future Work
 
@@ -305,3 +356,7 @@ When modifying the project:
 3. [predictionEngine.js](C:\projects\game_sims\ncaam-predictor\src\lib\predictionEngine.js)
 4. [ncaaData.js](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.js)
 5. [sportsbookParser.js](C:\projects\game_sims\ncaam-predictor\src\lib\sportsbookParser.js)
+
+If the task is operational rather than code-oriented, also read:
+
+6. [RUNNING_THE_NCAAM_MODEL.md](C:\projects\game_sims\ncaam-predictor\RUNNING_THE_NCAAM_MODEL.md)
