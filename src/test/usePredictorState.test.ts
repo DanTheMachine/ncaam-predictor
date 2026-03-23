@@ -5,14 +5,14 @@ import { usePredictorState } from "../hooks/usePredictorState";
 describe("usePredictorState", () => {
   test("keeps the slate date aligned to the current day when the app stays open overnight", () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-03-21T23:58:00-07:00"));
+    vi.setSystemTime(new Date(2026, 2, 21, 23, 58, 0));
 
     const { result } = renderHook(() => usePredictorState());
 
     expect(result.current.slateDate).toBe("2026-03-21");
 
     act(() => {
-      vi.setSystemTime(new Date("2026-03-22T00:01:00-07:00"));
+      vi.setSystemTime(new Date(2026, 2, 22, 0, 1, 0));
       vi.advanceTimersByTime(60_000);
     });
 
