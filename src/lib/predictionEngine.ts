@@ -56,11 +56,11 @@ function projectMatchupTotal(home: TeamData, away: TeamData, { gameType, neutral
   const harmonicTempo = (2 * home.tempo * away.tempo) / Math.max(home.tempo + away.tempo, 1);
   const tempoGap = Math.abs(home.tempo - away.tempo);
   const pacePressure =
-    ((home.orbPct + away.orbPct) - (LEAGUE_BASELINES.orbPct * 2)) * 0.04 +
-    ((LEAGUE_BASELINES.tovPct * 2) - (home.tovPct + away.tovPct)) * 0.09 +
-    ((home.ftr + away.ftr) - (LEAGUE_BASELINES.ftr * 2)) * 0.025 +
-    tempoGap * 0.04;
-  const possessions = clamp((harmonicTempo * 0.7 + avgTempo * 0.3) + pacePressure, 60, 79);
+    ((home.orbPct + away.orbPct) - (LEAGUE_BASELINES.orbPct * 2)) * 0.03 +
+    ((LEAGUE_BASELINES.tovPct * 2) - (home.tovPct + away.tovPct)) * 0.07 +
+    ((home.ftr + away.ftr) - (LEAGUE_BASELINES.ftr * 2)) * 0.018 +
+    tempoGap * 0.015;
+  const possessions = clamp((harmonicTempo * 0.76 + avgTempo * 0.24) + pacePressure, 60, 79);
 
   const matchupAdj = (team: TeamData) => {
     const efgAdj = clamp((team.efgPct - LEAGUE_BASELINES.efgPct) * 0.004, -0.9, 1.2);
@@ -89,12 +89,23 @@ function projectMatchupTotal(home: TeamData, away: TeamData, { gameType, neutral
 
   const marketTotal = odds?.overUnder != null ? Number(odds.overUnder) : null;
   const marketGap = marketTotal == null ? 0 : Math.abs(rawTotal - marketTotal);
+  const rawLeansOver = marketTotal != null && rawTotal > marketTotal;
   const marketWeight = marketTotal == null
     ? 0
-    : clamp((0.18 + marketGap / 32) * (1.08 - totalConfidence), 0.18, 0.55);
-  const total = marketTotal == null
+    : clamp(
+      (0.26 + marketGap / 20) * (1.14 - totalConfidence) + (rawLeansOver ? 0.12 : 0),
+      0.24,
+      rawLeansOver ? 0.76 : 0.62
+    );
+  const blendedTotal = marketTotal == null
     ? rawTotal
     : rawTotal * (1 - marketWeight) + marketTotal * marketWeight;
+  const marketDriftCap = rawLeansOver
+    ? 7.5 - totalConfidence * 1.5
+    : 9.0 - totalConfidence;
+  const total = marketTotal == null
+    ? rawTotal
+    : clamp(blendedTotal, marketTotal - (marketDriftCap + 1.0), marketTotal + marketDriftCap);
   const scoreShift = (total - rawTotal) / 2;
 
   const totalStdDev = clamp(

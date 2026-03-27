@@ -185,6 +185,54 @@ describe('predictionEngine', () => {
     expect(analysis.spreadRec).toBe('pass')
   })
 
+  test('predictGame pulls extreme high-total projections back toward the market', () => {
+    const result = predictGame({
+      homeTeam: 'DUKE',
+      awayTeam: 'KU',
+      gameType: 'Regular Season',
+      neutralSite: false,
+      homeB2B: false,
+      awayB2B: false,
+      liveStats: {
+        DUKE: {
+          adjO: 126,
+          adjD: 97,
+          adjEM: 29,
+          tempo: 73.5,
+          efgPct: 56.2,
+          tovPct: 14.2,
+          orbPct: 33.8,
+          ftr: 37.1,
+        },
+        KU: {
+          adjO: 124,
+          adjD: 98,
+          adjEM: 26,
+          tempo: 72.4,
+          efgPct: 55.8,
+          tovPct: 14.6,
+          orbPct: 33.1,
+          ftr: 36.4,
+        },
+      },
+      odds: {
+        homeMoneyline: -125,
+        awayMoneyline: +105,
+        spread: -2.5,
+        spreadHomeOdds: -110,
+        spreadAwayOdds: -110,
+        overUnder: 145.5,
+        overOdds: -110,
+        underOdds: -110,
+      },
+    })
+
+    expect(parseFloat(result.rawTotal)).toBeGreaterThan(150)
+    expect(result.marketBlend).toBeGreaterThan(0.4)
+    expect(parseFloat(result.total)).toBeLessThan(parseFloat(result.rawTotal) - 4)
+    expect(parseFloat(result.total)).toBeLessThan(153.0)
+  })
+
   test('moneyline helpers stay internally consistent', () => {
     expect(americanToImplied(-150)).toBeCloseTo(0.6, 3)
     expect(americanToImplied(+150)).toBeCloseTo(0.4, 3)

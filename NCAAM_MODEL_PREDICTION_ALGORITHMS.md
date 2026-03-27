@@ -82,6 +82,8 @@ Full definitions:
   - formula: a sum of rebounding, turnover, free-throw, and tempo-gap adjustments
   - purpose: shifts the possession estimate up when the matchup should create more extra chances, or down when the matchup looks more stable and half-court oriented
 
+The current implementation leans more heavily on harmonic tempo than earlier versions and uses smaller pace-pressure coefficients than the prior tuning pass, which helps prevent tempo mismatches from inflating totals too aggressively.
+
 The final possessions estimate is bounded between `60` and `79`.
 
 ### 2.3 Points per possession
@@ -129,10 +131,13 @@ It computes:
 - `marketWeight` based on:
   - how far the model is from market
   - total confidence
+  - whether the raw model is landing above or below the sportsbook total
 
-The final total is:
+The model first computes a blended total:
 
-- `finalTotal = rawTotal * (1 - marketWeight) + sportsbookTotal * marketWeight`
+- `blendedTotal = rawTotal * (1 - marketWeight) + sportsbookTotal * marketWeight`
+
+If the raw model is well above market, the blend is intentionally stronger than on the under side. After that, a soft drift cap keeps the displayed projected total from sitting too far above or below the posted number.
 
 Then the difference between `finalTotal` and `rawTotal` is split evenly across both teams so the total changes without distorting the projected margin too much.
 
@@ -161,7 +166,7 @@ It is bounded between `0.38` and `0.72`.
 
 The current implementation intentionally uses a wider range than earlier versions so totals do not produce oversized probability edges from modest projection gaps.
 
-It is bounded between `11.5` and `17.5`.
+It is bounded between `13.0` and `19.0`.
 
 ### 3.3 Margin standard deviation
 
@@ -175,7 +180,7 @@ It is bounded between `11.5` and `17.5`.
 
 The current implementation intentionally uses a wider range than earlier versions so Money Line and spread edges are less aggressive.
 
-It is bounded between `10.5` and `16.5`.
+It is bounded between `12.0` and `18.0`.
 
 The model also derives `sideConfidence` from margin volatility.
 
@@ -429,36 +434,36 @@ Pace pressure:
   - home team `tovPct`: `15.5`
   - away team `tovPct`: `17.5`
   - league baseline total: `17.0 + 17.0 = 34.0`
-  - formula: `(league_tov_total - (home_tovPct + away_tovPct)) * 0.09`
-  - substitution: `(34.0 - (15.5 + 17.5)) * 0.09`
-  - result: `0.09`
+  - formula: `(league_tov_total - (home_tovPct + away_tovPct)) * 0.07`
+  - substitution: `(34.0 - (15.5 + 17.5)) * 0.07`
+  - result: `0.07`
 - free throw term:
   - home team `ftr`: `35.0`
   - away team `ftr`: `32.0`
   - league baseline total: `33.0 + 33.0 = 66.0`
-  - formula: `((home_ftr + away_ftr) - league_ftr_total) * 0.025`
-  - substitution: `((35.0 + 32.0) - 66.0) * 0.025`
-  - result: `0.025`
+  - formula: `((home_ftr + away_ftr) - league_ftr_total) * 0.018`
+  - substitution: `((35.0 + 32.0) - 66.0) * 0.018`
+  - result: `0.018`
 - tempo gap term:
   - tempo gap: `3.0`
-  - formula: `tempo_gap * 0.04`
-  - substitution: `3.0 * 0.04`
-  - result: `0.12`
+  - formula: `tempo_gap * 0.015`
+  - substitution: `3.0 * 0.015`
+  - result: `0.045`
 
 Total pace pressure:
 
 - Formula: `orb_term + tov_term + ftr_term + tempo_gap_term = pacePressure`
-- Substitution: `0.04 + 0.09 + 0.025 + 0.12`
-- Result: `0.275`
+- Substitution: `0.04 + 0.07 + 0.018 + 0.045`
+- Result: `0.173`
 
 Possessions:
 
 - Harmonic tempo: `68.47`
 - Average tempo: `68.5`
-- Pace pressure: `0.275`
-- Formula: `(harmonic_tempo * 0.7 + average_tempo * 0.3) + pacePressure = possessions`
-- Substitution: `(68.47 * 0.7 + 68.5 * 0.3) + 0.275`
-- Result: `68.75`
+- Pace pressure: `0.173`
+- Formula: `(harmonic_tempo * 0.76 + average_tempo * 0.24) + pacePressure = possessions`
+- Substitution: `(68.47 * 0.76 + 68.5 * 0.24) + 0.173`
+- Result: `68.65`
 
 ### 11.3 Step 2: Estimate matchup-adjusted PPP
 
@@ -580,37 +585,42 @@ Market gap:
 - Substitution: `|155.0 - 145.5|`
 - Result: `9.5`
 
-With a moderate confidence score, assume market weight comes out around `0.28`.
+With a moderate confidence score and a raw total that is clearly above market, assume market weight comes out around `0.44`.
 
 Blended total:
 
 - Raw total: `155.0`
 - Market total: `145.5`
-- Market weight: `0.28`
-- Formula: `rawTotal * (1 - marketWeight) + marketTotal * marketWeight = finalTotal`
-- Substitution: `155.0 * 0.72 + 145.5 * 0.28`
-- Result: `152.3`
+- Market weight: `0.44`
+- Formula: `rawTotal * (1 - marketWeight) + marketTotal * marketWeight = blendedTotal`
+- Substitution: `155.0 * 0.56 + 145.5 * 0.44`
+- Result: `150.8`
+
+Drift cap:
+
+- Because the raw total is above market, the model also applies a soft cap to how far the final projection can remain above the posted number
+- In this example, the blended total already sits inside that cap, so `finalTotal` stays `150.8`
 
 Score shift:
 
-- Final total: `152.3`
+- Final total: `150.8`
 - Raw total: `155.0`
 - Formula: `(finalTotal - rawTotal) / 2 = scoreShift`
-- Substitution: `(152.3 - 155.0) / 2`
-- Result: `-1.35`
+- Substitution: `(150.8 - 155.0) / 2`
+- Result: `-2.1`
 
 Final projected score:
 
-- home `82.8 - 1.35 = 81.5`
-- away `72.2 - 1.35 = 70.9`
+- home `82.8 - 2.1 = 80.7`
+- away `72.2 - 2.1 = 70.1`
 
 Final projected total:
 
-- `152.3`
+- `150.8`
 
 Final projected margin:
 
-- `81.5 - 70.9 = 10.6`
+- `80.7 - 70.1 = 10.6`
 
 ### 11.6 Step 5: Convert projected margin into Money Line win probability
 
@@ -710,7 +720,7 @@ Decision:
 
 Projected total:
 
-- `152.3`
+- `150.8`
 
 Sportsbook total:
 
@@ -718,15 +728,15 @@ Sportsbook total:
 
 Point edge:
 
-- Projected total: `152.3`
+- Projected total: `150.8`
 - Sportsbook total: `145.5`
 - Formula: `projectedTotal - sportsbookTotal = ouEdge`
-- Substitution: `152.3 - 145.5`
-- Result: `6.8`
+- Substitution: `150.8 - 145.5`
+- Result: `5.3`
 
 Decision from point-gap rule:
 
-- since `6.8 > 2.0`
+- since `5.3 > 2.0`
 - recommendation: `over`
 
 Now convert to probability using total volatility.
@@ -736,17 +746,17 @@ Assume `totalStdDev = 13.4`.
 Over probability:
 
 - Sportsbook total: `145.5`
-- Projected total: `152.3`
+- Projected total: `150.8`
 - Total standard deviation: `13.4`
 - Formula: `1 - normCDF((sportsbookTotal - projectedTotal) / totalStdDev) = pOver`
-- Substitution: `1 - normCDF((145.5 - 152.3) / 13.4)`
-- Intermediate step: `1 - normCDF(-0.507)`
-- Intermediate step: `1 - 0.306`
-- Result: `0.694`
+- Substitution: `1 - normCDF((145.5 - 150.8) / 13.4)`
+- Intermediate step: `1 - normCDF(-0.396)`
+- Intermediate step: `1 - 0.346`
+- Result: `0.654`
 
 Under probability:
 
-- `1 - 0.694 = 0.306`
+- `1 - 0.654 = 0.346`
 
 With `-110 / -110`, vig-adjusted over probability is about `0.500`.
 
@@ -757,14 +767,14 @@ Total edge:
 Decision:
 
 - recommendation: `over 145.5`
-- probability edge: `19.4%`
+- probability edge: `15.4%`
 
 ### 11.10 Example summary
 
 Using this worked example, the model would likely produce:
 
-- projected score: home `81.5`, away `70.9`
-- projected total: `152.3`
+- projected score: home `80.7`, away `70.1`
+- projected total: `150.8`
 - home win probability: `78.8%`
 - Money Line recommendation: `home`
 - spread recommendation: `home -3.5`
@@ -864,7 +874,7 @@ The total before any market blend toward the sportsbook number.
 
 ### `marketWeight`
 
-How much the model pulls its raw total toward the sportsbook total. Higher weight means more trust in the market number for that game.
+How much the model pulls its raw total toward the sportsbook total. Higher weight means more trust in the market number for that game, and the current implementation can use a stronger weight when the raw model is notably above market.
 
 ### `totalStdDev`
 

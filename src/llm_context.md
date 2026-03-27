@@ -126,10 +126,10 @@ The current model does not use a full historical machine-learning training pipel
 
 Core ideas:
 
-- estimate possessions from blended tempo and `pacePressure`
+- estimate possessions from a conservative blend of harmonic tempo, average tempo, and `pacePressure`
 - estimate each team's points per possession from `adjO`, opponent `adjD`, and small four-factor adjustments
 - apply home-court and game-type adjustments
-- optionally blend projected total toward the sportsbook total
+- blend projected total toward the sportsbook total when odds are present, with extra restraint when the raw model lands well above market
 
 Key outputs:
 
@@ -145,6 +145,8 @@ Recent calibration direction:
 
 - `totalStdDev` and `marginStdDev` were widened to make the model less aggressive when turning projection gaps into betting probabilities
 - this was done after observing too many large edges across full slates
+- the pace estimate was recently tuned down slightly so tempo-gap and four-factor pressure do not inflate possessions as aggressively
+- totals now lean more heavily toward posted O/U numbers when the raw projection is materially higher than market, and a drift cap keeps displayed totals from running too far above consensus
 
 ### Money Line model
 
@@ -217,6 +219,7 @@ Current behavior:
 - uses blended pace rather than simple average only
 - uses small additive four-factor adjustments instead of heavily multiplying offense again
 - can partially blend toward market totals when odds are present
+- now uses a stronger market pull and a soft cap when the raw total is much higher than the posted line
 - computes `totalStdDev` and confidence values
 - now uses wider total volatility assumptions than earlier revisions to reduce overstated O/U edges
 
