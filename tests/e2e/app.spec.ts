@@ -35,14 +35,12 @@ test('imports predictions and results in results tracker and model eval', async 
   await page.goto('/')
 
   await page.getByRole('button', { name: /RESULTS TRACKER/i }).click()
-  await page.getByRole('button', { name: /Paste Predictions CSV/i }).click()
-  await page.locator('textarea').nth(0).fill(predictionsCsv)
-  await page.getByRole('button', { name: /^Import$/i }).click()
+  await page.getByPlaceholder(/Paste the full ncaa-predictions-YYYY-MM-DD\.csv content here/i).fill(predictionsCsv)
+  await page.getByRole('button', { name: /^Import$/i }).first().click()
   await expect(page.getByText(/Imported 1 predictions/i)).toBeVisible()
 
-  await page.getByRole('button', { name: /Paste Results CSV/i }).click()
-  await page.locator('textarea').nth(0).fill(resultsCsv)
-  await page.getByRole('button', { name: /^Import$/i }).click()
+  await page.getByPlaceholder(/Date,Home,Away,Home Score,Away Score/i).fill(resultsCsv)
+  await page.getByRole('button', { name: /^Import$/i }).nth(1).click()
   await expect(page.getByText(/Imported 1 results/i)).toBeVisible()
   await expect(page.getByText(/Game Log \| 1 predictions \| 1 graded/i)).toBeVisible()
   await expect(page.getByText(/80-70/)).toBeVisible()

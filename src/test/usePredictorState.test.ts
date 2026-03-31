@@ -116,6 +116,10 @@ describe("usePredictorState", () => {
 
     const { result } = renderHook(() => usePredictorState());
 
+    act(() => {
+      result.current.setSlateDate("2026-03-30");
+    });
+
     await act(async () => {
       await result.current.handleLoadEspnSlate();
     });
