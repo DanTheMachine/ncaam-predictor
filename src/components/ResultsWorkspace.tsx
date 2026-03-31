@@ -1,5 +1,5 @@
 import type { ChangeEvent, RefObject } from "react";
-import type { AggregateStats, EvalControlState, EvalSummary, GradedPredictionRow } from "../types";
+import type { AggregateStats, DetailedEvalSummary, EvalControlState, EvalSummary, GradedPredictionRow } from "../types";
 
 interface ResultsTrackerTabProps {
   resultsStatus: string;
@@ -29,6 +29,7 @@ interface ModelEvalTabProps {
   evalThresholds: EvalControlState;
   evalCalibration: EvalControlState;
   evalSummary: EvalSummary;
+  detailedEval: DetailedEvalSummary;
   gradedRows: GradedPredictionRow[];
   stats: AggregateStats;
   evalResultsFileRef: RefObject<HTMLInputElement | null>;
@@ -199,40 +200,6 @@ export function ResultsTrackerTab({
       )}
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-        <button
-          onClick={() => setShowResultsPaste((value: boolean) => !value)}
-          style={{
-            background: showResultsPaste ? "rgba(245,197,24,0.12)" : "rgba(255,200,50,0.06)",
-            border: "1px solid rgba(255,200,50,0.18)",
-            borderRadius: 5,
-            padding: "8px 16px",
-            color: showResultsPaste ? "#f5c518" : "#c8a060",
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: 2,
-            fontFamily: "monospace",
-            cursor: "pointer",
-          }}
-        >
-          {showResultsPaste ? "Hide Results CSV" : "Paste Results CSV"}
-        </button>
-        <button
-          onClick={() => setShowPredPaste((value: boolean) => !value)}
-          style={{
-            background: showPredPaste ? "rgba(245,197,24,0.12)" : "rgba(255,200,50,0.06)",
-            border: "1px solid rgba(255,200,50,0.18)",
-            borderRadius: 5,
-            padding: "8px 16px",
-            color: showPredPaste ? "#f5c518" : "#c8a060",
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: 2,
-            fontFamily: "monospace",
-            cursor: "pointer",
-          }}
-        >
-          {showPredPaste ? "Hide Predictions CSV" : "Paste Predictions CSV"}
-        </button>
         {(resultsLogLength > 0 || predLogLength > 0) && (
           <button onClick={clearAllImports} style={dangerButtonStyle}>
             Clear All
@@ -240,73 +207,26 @@ export function ResultsTrackerTab({
         )}
       </div>
 
-      {showResultsPaste && (
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 12, marginBottom: 12 }}>
         <div
           style={{
             background: "rgba(255,200,50,0.02)",
             border: "1px solid rgba(255,200,50,0.12)",
             borderRadius: 6,
             padding: 14,
-            marginBottom: 12,
             animation: "fadeUp 0.2s ease",
           }}
         >
           <div style={{ fontSize: 8, color: "#c8a060", letterSpacing: 3, marginBottom: 8 }}>
-            Paste results CSV: Date, Home, Away, Home Score, Away Score
+            PREDICTIONS CSV
           </div>
-          <textarea
-            value={resultsPaste}
-            onChange={(event) => setResultsPaste(event.target.value)}
-            rows={5}
-            style={{
-              width: "100%",
-              background: "rgba(0,0,0,0.4)",
-              border: "1px solid rgba(255,200,50,0.15)",
-              borderRadius: 4,
-              padding: "8px 10px",
-              color: "#f0e8d0",
-              fontFamily: "monospace",
-              fontSize: 10,
-              resize: "vertical",
-              boxSizing: "border-box",
-            }}
-            placeholder={"Date,Home,Away,Home Score,Away Score\n2026-03-12,DUKE,KU,78,71"}
-          />
-          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            <button onClick={handleImportResults} style={actionButtonStyle}>
-              Import
-            </button>
-            <button
-              onClick={() => {
-                setResultsPaste("");
-                setShowResultsPaste(false);
-              }}
-              style={clearButtonStyle}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showPredPaste && (
-        <div
-          style={{
-            background: "rgba(255,200,50,0.02)",
-            border: "1px solid rgba(255,200,50,0.12)",
-            borderRadius: 6,
-            padding: 14,
-            marginBottom: 12,
-            animation: "fadeUp 0.2s ease",
-          }}
-        >
-          <div style={{ fontSize: 8, color: "#c8a060", letterSpacing: 3, marginBottom: 8 }}>
+          <div style={{ fontSize: 10, color: "#b9925c", marginBottom: 8 }}>
             Paste predictions CSV exported from the Predictor tab
           </div>
           <textarea
             value={predPaste}
             onChange={(event) => setPredPaste(event.target.value)}
-            rows={5}
+            rows={7}
             style={{
               width: "100%",
               background: "rgba(0,0,0,0.4)",
@@ -325,18 +245,55 @@ export function ResultsTrackerTab({
             <button onClick={handleImportPredictions} style={actionButtonStyle}>
               Import
             </button>
-            <button
-              onClick={() => {
-                setPredPaste("");
-                setShowPredPaste(false);
-              }}
-              style={clearButtonStyle}
-            >
-              Cancel
+            <button onClick={() => setPredPaste("")} style={clearButtonStyle}>
+              Clear
             </button>
           </div>
         </div>
-      )}
+
+        <div
+          style={{
+            background: "rgba(255,200,50,0.02)",
+            border: "1px solid rgba(255,200,50,0.12)",
+            borderRadius: 6,
+            padding: 14,
+            animation: "fadeUp 0.2s ease",
+          }}
+        >
+          <div style={{ fontSize: 8, color: "#c8a060", letterSpacing: 3, marginBottom: 8 }}>
+            RESULTS CSV
+          </div>
+          <div style={{ fontSize: 10, color: "#b9925c", marginBottom: 8 }}>
+            Paste results CSV: Date, Home, Away, Home Score, Away Score
+          </div>
+          <textarea
+            value={resultsPaste}
+            onChange={(event) => setResultsPaste(event.target.value)}
+            rows={7}
+            style={{
+              width: "100%",
+              background: "rgba(0,0,0,0.4)",
+              border: "1px solid rgba(255,200,50,0.15)",
+              borderRadius: 4,
+              padding: "8px 10px",
+              color: "#f0e8d0",
+              fontFamily: "monospace",
+              fontSize: 10,
+              resize: "vertical",
+              boxSizing: "border-box",
+            }}
+            placeholder={"Date,Home,Away,Home Score,Away Score\n2026-03-12,DUKE,KU,78,71"}
+          />
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button onClick={handleImportResults} style={actionButtonStyle}>
+              Import
+            </button>
+            <button onClick={() => setResultsPaste("")} style={clearButtonStyle}>
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
 
       {predLogLength > 0 ? (
         <div style={{ background: "#0a0700", border: "1px solid #1a1200", borderRadius: 8, padding: 16 }}>
@@ -500,6 +457,7 @@ export function ModelEvalTab({
   evalThresholds,
   evalCalibration,
   evalSummary,
+  detailedEval,
   gradedRows,
   stats,
   evalResultsFileRef,
@@ -623,10 +581,24 @@ export function ModelEvalTab({
         </div>
       </div>
 
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 10, marginBottom: 16 }}>
+        {[
+          ["Matched Games", detailedEval.counts.matchedGames],
+          ["Total Bets", detailedEval.counts.totalBets],
+          ["Unmatched Predictions", detailedEval.counts.unmatchedPredictions],
+          ["Unmatched Results", detailedEval.counts.unmatchedResults],
+        ].map(([label, value]) => (
+          <div key={String(label)} style={{ background: "rgba(255,200,50,0.02)", border: "1px solid rgba(255,200,50,0.12)", borderRadius: 8, padding: "14px 16px" }}>
+            <div style={{ fontSize: 8, color: "#c8a060", letterSpacing: 3, marginBottom: 8 }}>{label}</div>
+            <div style={{ fontSize: 28, color: "#f0e8d0", fontFamily: "'Bebas Neue',monospace", lineHeight: 1 }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 10, marginBottom: 16 }}>
         {[
           { key: "ml" as const, label: "MONEY LINE", color: "#93c5fd" },
-          { key: "spr" as const, label: "SPREAD", color: "#f59e0b" },
+          { key: "spr" as const, label: "SPREAD ATS", color: "#f59e0b" },
           { key: "ou" as const, label: "O/U", color: "#a78bfa" },
         ].map(({ key, label, color }) => {
           const summary = evalSummary[key];
@@ -659,6 +631,84 @@ export function ModelEvalTab({
             </div>
           );
         })}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 10, marginBottom: 16 }}>
+        {detailedEval.edgeThresholds.map((bucket) => (
+          <div key={bucket.label} style={{ background: "rgba(255,200,50,0.02)", border: "1px solid rgba(255,200,50,0.12)", borderRadius: 8, padding: "14px 16px" }}>
+            <div style={{ fontSize: 9, color: "#f5c518", letterSpacing: 3, marginBottom: 10 }}>{bucket.label}</div>
+            {[
+              ["Bets", bucket.bets],
+              ["Record", `${bucket.wins}-${bucket.losses}-${bucket.pushes}`],
+              ["Hit rate", `${bucket.hitRate.toFixed(1)}%`],
+              ["ROI", `${bucket.roiPct >= 0 ? "+" : ""}${bucket.roiPct.toFixed(1)}%`],
+            ].map(([itemKey, value]) => (
+              <div key={String(itemKey)} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "3px 0", borderBottom: "1px solid rgba(255,200,50,0.05)" }}>
+                <span style={{ fontSize: 9, color: "#b28a57" }}>{itemKey}</span>
+                <span style={{ fontSize: 9, color: "#f0e8d0", fontFamily: "monospace" }}>{value}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,minmax(0,1fr))", gap: 10, marginBottom: 16 }}>
+        {detailedEval.mlCalibration.map((bucket) => (
+          <div key={bucket.label} style={{ background: "rgba(255,200,50,0.02)", border: "1px solid rgba(255,200,50,0.12)", borderRadius: 8, padding: "14px 16px" }}>
+            <div style={{ fontSize: 9, color: "#93c5fd", letterSpacing: 3, marginBottom: 10 }}>{bucket.label}</div>
+            {[
+              ["Games", bucket.games],
+              ["Accuracy", `${bucket.accuracy.toFixed(1)}%`],
+              ["Avg predicted", `${bucket.avgPredicted.toFixed(1)}%`],
+            ].map(([itemKey, value]) => (
+              <div key={String(itemKey)} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "3px 0", borderBottom: "1px solid rgba(255,200,50,0.05)" }}>
+                <span style={{ fontSize: 9, color: "#b28a57" }}>{itemKey}</span>
+                <span style={{ fontSize: 9, color: "#f0e8d0", fontFamily: "monospace" }}>{value}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 10, marginBottom: 16 }}>
+        {detailedEval.ouCalibration.map((bucket) => (
+          <div key={bucket.label} style={{ background: "rgba(255,200,50,0.02)", border: "1px solid rgba(255,200,50,0.12)", borderRadius: 8, padding: "14px 16px" }}>
+            <div style={{ fontSize: 9, color: "#a78bfa", letterSpacing: 3, marginBottom: 10 }}>{bucket.label}</div>
+            {[
+              ["Games", bucket.games],
+              ["Avg edge", `${bucket.avgEdge.toFixed(1)}%`],
+              ["Record", bucket.tracked ? `${bucket.wins}-${bucket.losses}-${bucket.pushes}` : "No bet tracked"],
+              ["Hit rate", bucket.tracked ? `${bucket.hitRate.toFixed(1)}%` : "-"],
+              ["Units", bucket.tracked ? `${bucket.units >= 0 ? "+" : ""}${bucket.units.toFixed(2)}u` : "-"],
+              ["ROI", bucket.tracked ? `${bucket.roiPct >= 0 ? "+" : ""}${bucket.roiPct.toFixed(1)}%` : "-"],
+            ].map(([itemKey, value]) => (
+              <div key={String(itemKey)} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "3px 0", borderBottom: "1px solid rgba(255,200,50,0.05)" }}>
+                <span style={{ fontSize: 9, color: "#b28a57" }}>{itemKey}</span>
+                <span style={{ fontSize: 9, color: "#f0e8d0", fontFamily: "monospace" }}>{value}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 10, marginBottom: 16 }}>
+        {detailedEval.ouEdgeBuckets.map((bucket) => (
+          <div key={bucket.label} style={{ background: "rgba(255,200,50,0.02)", border: "1px solid rgba(255,200,50,0.12)", borderRadius: 8, padding: "14px 16px" }}>
+            <div style={{ fontSize: 9, color: "#a78bfa", letterSpacing: 3, marginBottom: 10 }}>{bucket.label}</div>
+            {[
+              ["Bets", bucket.games],
+              ["Avg edge", `${bucket.avgEdge.toFixed(1)}%`],
+              ["Record", `${bucket.wins}-${bucket.losses}-${bucket.pushes}`],
+              ["Hit rate", `${bucket.hitRate.toFixed(1)}%`],
+              ["ROI", `${bucket.roiPct >= 0 ? "+" : ""}${bucket.roiPct.toFixed(1)}%`],
+            ].map(([itemKey, value]) => (
+              <div key={String(itemKey)} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "3px 0", borderBottom: "1px solid rgba(255,200,50,0.05)" }}>
+                <span style={{ fontSize: 9, color: "#b28a57" }}>{itemKey}</span>
+                <span style={{ fontSize: 9, color: "#f0e8d0", fontFamily: "monospace" }}>{value}</span>
+              </div>
+            ))}
+          </div>
+        ))}
       </div>
 
       {gradedRows.filter((row) => row.graded).length > 0 ? (

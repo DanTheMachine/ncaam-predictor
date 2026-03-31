@@ -16,6 +16,8 @@ Runbook:
 - Barttorvik and KenPom stats import
 - Prediction and results CSV export
 - Results Tracker and Model Eval workflows
+- Model Eval supports richer ROI review including market summaries, edge-threshold buckets, ML calibration, and O/U calibration
+- Model Eval imports are tolerant of cumulative prediction sheets, extra top rows, extra trailing columns, TSV spreadsheet pastes, and results files with or without headers
 
 ## Scripts
 
@@ -24,6 +26,12 @@ Runbook:
 - `npm run test:ui`: open the Vitest UI
 - `npm run test:e2e`: run Playwright E2E tests
 - `npm run build`: create a production build
+
+## Optional Odds Setup
+
+For initial odds seeding on ESPN-loaded slates, create `.env.local` from [.env.example](C:\projects\game_sims\ncaam-predictor\.env.example) and set:
+
+- `VITE_ODDS_API_KEY`
 
 ## Testing
 
@@ -34,4 +42,9 @@ The project now includes:
 - Playwright browser smoke coverage for the main user flow
 
 GitHub Actions runs Vitest, Playwright, and the production build on every push and pull request.
+
+## Model Eval Notes
+
+- The active NCAAM evaluation UI is implemented in [ResultsWorkspace.tsx](C:\projects\game_sims\ncaam-predictor\src\components\ResultsWorkspace.tsx).
+- If you see an older `Pending`-style market summary card format, double-check that you are running the NCAAM app and not a sibling predictor app with a different `ModelEvaluation` component.
 

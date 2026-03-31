@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   buildAggregateStats,
+  buildDetailedEvalSummary,
   buildEvalSummary,
   buildGradedRows,
   mergeUniqueRows,
@@ -84,6 +85,7 @@ export function useResultsWorkspace() {
   const gradedRows = buildGradedRows(predLog, resultsLog);
   const evalSummary = buildEvalSummary(gradedRows, evalThresholds, evalCalibration);
   const stats = buildAggregateStats(gradedRows);
+  const detailedEval = buildDetailedEvalSummary(predLog, resultsLog, gradedRows);
 
   const clearAllImports = () => {
     setResultsLog([]);
@@ -108,6 +110,7 @@ export function useResultsWorkspace() {
     setEvalCalibration,
     gradedRows,
     evalSummary,
+    detailedEval,
     stats,
     resultsLogLength: resultsLog.length,
     predLogLength: predLog.length,

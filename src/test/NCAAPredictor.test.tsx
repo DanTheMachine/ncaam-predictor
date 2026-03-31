@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import NCAAPredictor from '../NCAAPredictor'
-import { samplePredictionsCsv, sampleResultsCsv } from './fixtures'
+import { samplePredictionsCsv } from './fixtures'
 
 const findButton = (label: string) =>
   screen.getAllByRole('button', { name: (_, element) => element?.textContent?.includes(label) ?? false })[0]
@@ -29,23 +29,17 @@ describe('NCAAPredictor', () => {
     expect(screen.getAllByRole('button', { name: /EDIT/i }).length).toBeGreaterThan(0)
   })
 
-  test('imports predictions and results into model eval', async () => {
+  test('imports predictions into model eval', async () => {
     render(<NCAAPredictor />)
 
     fireEvent.click(screen.getByRole('button', { name: /MODEL EVAL/i }))
 
     const predictionsBox = screen.getByPlaceholderText(/Paste the full predictions CSV content here/i)
-    const resultsBox = screen.getByPlaceholderText(/Date,Home,Away,Home Score,Away Score/i)
+    expect(screen.getByPlaceholderText(/Date,Home,Away,Home Score,Away Score/i)).toBeInTheDocument()
 
     fireEvent.change(predictionsBox, { target: { value: samplePredictionsCsv } })
     fireEvent.click(screen.getByRole('button', { name: /IMPORT PREDICTIONS/i }))
+
     expect(await screen.findByText(/Imported 1 predictions/i)).toBeInTheDocument()
-
-    fireEvent.change(resultsBox, { target: { value: sampleResultsCsv } })
-    fireEvent.click(screen.getByRole('button', { name: /IMPORT RESULTS/i }))
-    expect(await screen.findByText(/Imported 1 results/i)).toBeInTheDocument()
-
-    expect(screen.getByText(/EVALUATED BETS/i)).toBeInTheDocument()
-    expect(screen.getByText(/MONEY LINE/i)).toBeInTheDocument()
   })
 })

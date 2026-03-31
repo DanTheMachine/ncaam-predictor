@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { GAME_TYPES, KENPOM_NAME_MAP, TEAMS } from "../data/ncaaData";
 import { analyzeBetting, downloadCSV, mlAmerican, predictGame } from "../lib/predictionEngine";
+import { fetchEspnScoreboard, formatEspnDateParam } from "../lib/espn";
+import { extractInitialOdds, fetchOddsApiEvents, hasOddsApiKey, type OddsApiEvent } from "../lib/oddsApi";
 import { parseStatsCSV } from "../lib/statsParser";
 import { parseSbookWithDiagnostics } from "../lib/sportsbookParser";
 import type {
@@ -109,13 +111,19 @@ const resolveEspnTeam = (team?: EspnTeamInfo): string | null => {
     .filter(Boolean)
     .map((value) => String(value).trim());
 
-  for (const candidate of candidates) {
+  return resolveNamedTeamCandidates(candidates);
+};
+
+const resolveNamedTeamCandidates = (candidates: string[]): string | null => {
+  const cleaned = candidates.filter(Boolean).map((value) => String(value).trim());
+
+  for (const candidate of cleaned) {
     const upper = candidate.toUpperCase();
     if (TEAMS[upper]) return upper;
     if (ESPN_TO_OURS[upper] && TEAMS[ESPN_TO_OURS[upper]]) return ESPN_TO_OURS[upper];
   }
 
-  for (const candidate of candidates) {
+  for (const candidate of cleaned) {
     const raw = candidate.toLowerCase();
     if (KENPOM_NAME_MAP[raw] && TEAMS[KENPOM_NAME_MAP[raw]]) return KENPOM_NAME_MAP[raw];
 
@@ -123,8 +131,43 @@ const resolveEspnTeam = (team?: EspnTeamInfo): string | null => {
     if (KENPOM_NAME_MAP[normalized] && TEAMS[KENPOM_NAME_MAP[normalized]]) return KENPOM_NAME_MAP[normalized];
   }
 
+  for (const candidate of cleaned) {
+    const normalized = normalizeTeamKey(candidate);
+    const direct = Object.keys(TEAMS).find((abbr) => normalizeTeamKey(abbr) === normalized);
+    if (direct) return direct;
+
+    const nameMatch = Object.entries(TEAMS).find(([, value]) => {
+      const normalizedName = normalizeTeamKey(value.name);
+      return normalizedName === normalized || normalized.includes(normalizedName) || normalizedName.includes(normalized);
+    });
+    if (nameMatch) return nameMatch[0];
+  }
+
   return null;
 };
+
+const resolveOddsApiTeam = (name: string): string | null => {
+  const base = name.replace(/\b(Men's|MBB|Basketball)\b/gi, "").trim();
+  const candidates = [
+    base,
+    base.replace(/\bState\b/gi, "St"),
+    base.replace(/\bSt\b/gi, "State"),
+  ];
+  return resolveNamedTeamCandidates(candidates);
+};
+
+const buildOddsByMatchup = (events: OddsApiEvent[]): Record<string, Odds> =>
+  events.reduce<Record<string, Odds>>((acc, event) => {
+    const homeAbbr = resolveOddsApiTeam(event.home_team);
+    const awayAbbr = resolveOddsApiTeam(event.away_team);
+    if (!homeAbbr || !awayAbbr) return acc;
+
+    const odds = extractInitialOdds(event);
+    if (!odds) return acc;
+
+    acc[`${awayAbbr}@${homeAbbr}`] = odds;
+    return acc;
+  }, {});
 
 const localToday = (): string => {
   const d = new Date();
@@ -171,6 +214,7 @@ export function usePredictorState() {
   const [showLines, setShowLines] = useState(false);
   const [showSingleGameTools, setShowSingleGameTools] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [espnLoading, setEspnLoading] = useState(false);
   const [bulkPaste, setBulkPaste] = useState("");
   const [bulkStatus, setBulkStatus] = useState("");
   const [bulkError, setBulkError] = useState("");
@@ -339,6 +383,83 @@ export function usePredictorState() {
     }
   };
 
+  const handleLoadEspnSlate = async () => {
+    setSchedStatus("Loading slate from ESPN...");
+    setBulkError("");
+    setBulkStatus("");
+    setBulkUnmatched([]);
+    setEspnLoading(true);
+
+    try {
+      const [data, oddsEvents] = await Promise.all([
+        fetchEspnScoreboard(slateDate),
+        fetchOddsApiEvents(slateDate),
+      ]);
+      const events = data.events || [];
+      const oddsByMatchup = buildOddsByMatchup(oddsEvents);
+      const unmatched = new Map<string, number>();
+
+      const rows: SlateTableRow[] = events.flatMap((event) => {
+        const competition = event.competitions?.[0];
+        const competitors = competition?.competitors || [];
+        const homeComp = competitors.find((competitor) => competitor.homeAway === "home");
+        const awayComp = competitors.find((competitor) => competitor.homeAway === "away");
+        if (!homeComp || !awayComp) return [];
+
+        const homeAbbr = resolveEspnTeam(homeComp.team);
+        const awayAbbr = resolveEspnTeam(awayComp.team);
+
+        const homeNameRaw = homeComp.team?.displayName || homeComp.team?.shortDisplayName || homeComp.team?.location || homeComp.team?.abbreviation || "Unknown";
+        const awayNameRaw = awayComp.team?.displayName || awayComp.team?.shortDisplayName || awayComp.team?.location || awayComp.team?.abbreviation || "Unknown";
+
+        if (!homeAbbr) unmatched.set(homeNameRaw, (unmatched.get(homeNameRaw) ?? 0) + 1);
+        if (!awayAbbr) unmatched.set(awayNameRaw, (unmatched.get(awayNameRaw) ?? 0) + 1);
+        if (!homeAbbr || !awayAbbr) return [];
+
+        const gameTime = event.date
+          ? new Date(event.date).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", timeZoneName: "short" })
+          : "";
+
+        return [{
+          game: { homeAbbr, awayAbbr, gameTime },
+          homeNameRaw,
+          awayNameRaw,
+          homeMatched: true,
+          awayMatched: true,
+          editedOdds: oddsByMatchup[`${awayAbbr}@${homeAbbr}`] ?? null,
+          simResult: null,
+          homeB2B: false,
+          awayB2B: false,
+          gameType: slateGameType,
+          neutralSite: slateGameType !== "Regular Season" ? true : Boolean(competition?.neutralSite ?? slateNeutral),
+        }];
+      });
+
+      if (!rows.length) {
+        throw new Error(events.length ? "No ESPN games matched our team list for that date" : "No ESPN games found for that date");
+      }
+
+      const unmatchedTeams = [...unmatched.entries()]
+        .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+        .map(([name, count]) => ({ name, count }));
+      const seededOdds = rows.filter((row) => row.editedOdds).length;
+
+      setLinesRows(rows);
+      setShowLines(true);
+      setShowBulkImport(false);
+      setBulkUnmatched(unmatchedTeams);
+      setSchedStatus(
+        `Loaded ${rows.length} game${rows.length !== 1 ? "s" : ""} from ESPN for ${slateDate}` +
+          `${hasOddsApiKey() ? ` · seeded odds for ${seededOdds}` : " · no Odds API key, skipped initial odds"}` +
+          `${unmatchedTeams.length ? ` · ${unmatchedTeams.length} unmatched team name${unmatchedTeams.length !== 1 ? "s" : ""}` : ""}`,
+      );
+    } catch (error) {
+      setSchedStatus(`Could not load ESPN slate: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setEspnLoading(false);
+    }
+  };
+
   const handleRunAllSims = () => {
     setSimsRunning(true);
     setTimeout(() => {
@@ -480,14 +601,12 @@ export function usePredictorState() {
     const dt = new Date(slateDate + "T12:00:00");
     dt.setDate(dt.getDate() - 1);
     const date = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
-    const dateYMD = date.replace(/-/g, "");
+      const dateYMD = formatEspnDateParam(date);
 
     setSchedStatus("⏳ Fetching yesterday's scores from ESPN…");
 
     try {
-      const resp = await fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates=${dateYMD}&limit=200`);
-      if (!resp.ok) throw new Error(`ESPN ${resp.status}`);
-      const data: EspnScoreboardResponse = await resp.json();
+      const data: EspnScoreboardResponse = await fetchEspnScoreboard(date);
 
       const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
       const hdrs = ["Date", "Home", "Away", "Home Score", "Away Score", "Winner", "Total", "LookupKey"];
@@ -797,6 +916,7 @@ export function usePredictorState() {
     setShowSingleGameTools,
     showBulkImport,
     setShowBulkImport,
+    espnLoading,
     bulkPaste,
     bulkStatus,
     bulkError,
@@ -814,6 +934,7 @@ export function usePredictorState() {
     runSim,
     applyManualOdds,
     handleBulkGames,
+    handleLoadEspnSlate,
     handleRunAllSims,
     saveEdit,
     handleExport,

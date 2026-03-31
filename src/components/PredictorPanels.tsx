@@ -194,6 +194,7 @@ interface SlateControlsPanelProps {
   slateGameType: string;
   slateNeutral: boolean;
   showBulkImport: boolean;
+  espnLoading: boolean;
   bulkPaste: string;
   bulkStatus: string;
   bulkError: string;
@@ -204,6 +205,7 @@ interface SlateControlsPanelProps {
   simsRunning: boolean;
   gameTypes: string[];
   onToggleBulkImport: () => void;
+  onLoadEspnSlate: () => void | Promise<void>;
   onRunAllSims: () => void;
   onExportPredictions: () => void;
   onExportResults: () => void;
@@ -221,6 +223,7 @@ export function SlateControlsPanel({
   slateGameType,
   slateNeutral,
   showBulkImport,
+  espnLoading,
   bulkPaste,
   bulkStatus,
   bulkError,
@@ -231,6 +234,7 @@ export function SlateControlsPanel({
   simsRunning,
   gameTypes,
   onToggleBulkImport,
+  onLoadEspnSlate,
   onRunAllSims,
   onExportPredictions,
   onExportResults,
@@ -252,6 +256,24 @@ export function SlateControlsPanel({
           <div style={{ fontSize: 10, color: "#2a1a0a" }}>Enter games · add odds · run all sims · export CSV</div>
         </div>
         <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+          <button
+            onClick={onLoadEspnSlate}
+            disabled={espnLoading}
+            style={{
+              background: espnLoading ? "rgba(74,144,226,0.08)" : "linear-gradient(135deg,#0f3d64,#1d6fa5)",
+              border: espnLoading ? "1px solid rgba(96,165,250,0.2)" : "none",
+              borderRadius: 5,
+              padding: "8px 14px",
+              color: espnLoading ? "#93c5fd" : "#eff6ff",
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: 2,
+              fontFamily: "monospace",
+              cursor: espnLoading ? "not-allowed" : "pointer",
+            }}
+          >
+            {espnLoading ? "LOADING ESPN..." : "LOAD ESPN SLATE"}
+          </button>
           <button
             onClick={onToggleBulkImport}
             style={{
@@ -387,6 +409,8 @@ export function SlateControlsPanel({
         <div style={{ background: "rgba(255,200,50,0.02)", border: "1px solid rgba(255,200,50,0.12)", borderRadius: 6, padding: 14, marginBottom: 12, animation: "fadeUp 0.2s ease" }}>
           <div style={{ fontSize: 9, color: "#f5c518", letterSpacing: 3, marginBottom: 8, fontWeight: 700 }}>ENTER GAME SLATE</div>
           <div style={{ fontSize: 10, color: "#b9925c", lineHeight: 2, marginBottom: 10 }}>
+            ESPN-by-date is the primary workflow. Use this paste area as a backup when ESPN misses a game or you want a manual slate.
+            <br />
             Format: <span style={{ color: "#c8a850", fontFamily: "monospace" }}>AWAY_ABBR @ HOME_ABBR, TIME</span> - one game per line
             <br />
             Example: <span style={{ color: "#c8a850", fontFamily: "monospace" }}>KU @ DUKE, 7:00 PM ET</span>

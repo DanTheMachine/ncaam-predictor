@@ -22,16 +22,42 @@ const sbFix = (value: string): string =>
 
 const teamEntries = Object.entries(TEAMS) as [TeamCode, TeamRecord][];
 
+const normalizeLookupKey = (value: string): string =>
+  value
+    .toUpperCase()
+    .replace(/&/g, " AND ")
+    .replace(/[.'(),]/g, " ")
+    .replace(/-/g, " ")
+    .replace(/\bSAINT\b/g, "ST")
+    .replace(/\bSTATE\b/g, "ST")
+    .replace(/\bUNIVERSITY\b/g, " ")
+    .replace(/\bCOLLEGE\b/g, " ")
+    .replace(/\bOF\b/g, " ")
+    .replace(/\bTHE\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const compactLookupKey = (value: string): string => normalizeLookupKey(value).replace(/\s+/g, "");
+
 const SB_NAME_MAP: Record<string, TeamCode> = (() => {
   const lookup: Record<string, TeamCode> = {};
+  const addLookup = (name: string, abbr: TeamCode) => {
+    const upper = name.toUpperCase();
+    const normalized = normalizeLookupKey(name);
+    const compact = compactLookupKey(name);
+
+    lookup[upper] = abbr;
+    if (normalized) lookup[normalized] = abbr;
+    if (compact) lookup[compact] = abbr;
+  };
 
   teamEntries.forEach(([abbr, team]) => {
-    lookup[team.name.toUpperCase()] = abbr;
-    lookup[abbr] = abbr;
+    addLookup(team.name, abbr);
+    addLookup(abbr, abbr);
   });
 
   Object.entries(KENPOM_NAME_MAP).forEach(([name, abbr]) => {
-    if (TEAMS[abbr]) lookup[name.toUpperCase()] = abbr;
+    if (TEAMS[abbr]) addLookup(name, abbr);
   });
 
   const patches: Record<string, TeamCode> = {
@@ -197,7 +223,7 @@ const SB_NAME_MAP: Record<string, TeamCode> = (() => {
   };
 
   Object.entries(patches).forEach(([name, abbr]) => {
-    if (TEAMS[abbr]) lookup[name] = abbr;
+    if (TEAMS[abbr]) addLookup(name, abbr);
   });
 
   return lookup;
@@ -205,14 +231,21 @@ const SB_NAME_MAP: Record<string, TeamCode> = (() => {
 
 const resolveTeam = (name: string): TeamCode | null => {
   const upper = name.toUpperCase().trim();
+  const normalized = normalizeLookupKey(name);
+  const compact = compactLookupKey(name);
   if (TEAMS[upper]) return upper;
   if (SB_NAME_MAP[upper]) return SB_NAME_MAP[upper];
+  if (SB_NAME_MAP[normalized]) return SB_NAME_MAP[normalized];
+  if (SB_NAME_MAP[compact]) return SB_NAME_MAP[compact];
 
-  const exactEntry = teamEntries.find(([, team]) => team.name.toUpperCase() === upper);
+  const exactEntry = teamEntries.find(([, team]) => normalizeLookupKey(team.name) === normalized);
   if (exactEntry) return exactEntry[0];
 
   const partialEntry = teamEntries.find(
-    ([, team]) => team.name.toUpperCase().startsWith(upper) || upper.startsWith(team.name.toUpperCase()),
+    ([, team]) => {
+      const normalizedTeam = normalizeLookupKey(team.name);
+      return normalizedTeam.startsWith(normalized) || normalized.startsWith(normalizedTeam);
+    },
   );
   return partialEntry ? partialEntry[0] : null;
 };

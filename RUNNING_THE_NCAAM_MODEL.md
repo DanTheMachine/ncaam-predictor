@@ -131,37 +131,38 @@ Important note:
 
 - if you do not import live stats, the app uses the built-in baseline values in [ncaaData.ts](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.ts)
 
-### 6.2 Enter today's slate
+### 6.2 Load today's slate from ESPN
 
 Click:
 
-- `ENTER GAMES`
+- `LOAD ESPN SLATE`
 
 What it does:
 
-- opens the bulk slate entry panel
-- lets you paste matchups in a simple format like `KU @ DUKE, 7:00 PM ET`
-- also supports sportsbook-style paste blocks through the parser
+- fetches the selected day's NCAA slate from ESPN
+- maps ESPN team names into the app's internal team abbreviations
+- populates slate rows with teams, time, and neutral-site flags when available
+- if `VITE_ODDS_API_KEY` is configured, also attempts to seed initial moneyline, spread, and total values from The Odds API
 
 Typical success message:
 
-- `Loaded X games`
+- `Loaded X games from ESPN`
 
 Important note:
 
-- unlike the NBA app, this repo does not auto-load the schedule from a backend or proxy
-- the main workflow is slate-first through manual or sportsbook paste input
+- this still runs directly in the frontend with browser network access
+- if The Odds API key is not configured, the app still loads the slate and simply skips seeded odds
 
-### 6.3 If sportsbook lines need manual updates
+### 6.3 If ESPN misses a game or you want to override the slate
 
 Use either:
 
-- sportsbook-style bulk paste in the slate entry panel
+- sportsbook-style bulk paste in the backup slate panel
 - inline row editing with `EDIT ODDS`
 
 For sportsbook bulk paste:
 
-1. click `ENTER GAMES`
+1. click `PASTE SLATE`
 2. paste sportsbook text or `AWAY @ HOME` lines
 3. click `LOAD SLATE`
 
@@ -172,7 +173,18 @@ What it does:
 - attaches odds when those are available in the pasted format
 - reports unmatched team names when resolution fails
 
-### 6.4 Adjust game settings if needed
+### 6.4 If sportsbook lines need manual updates
+
+Use either:
+
+- sportsbook-style bulk paste in the backup slate panel
+- inline row editing with `EDIT ODDS`
+
+Important note:
+
+- pasted sportsbook odds and manual edits remain the source of truth after the initial ESPN/Odds API seed
+
+### 6.5 Adjust game settings if needed
 
 Each game row supports:
 
@@ -187,7 +199,7 @@ Use these if:
 - you want to test a fatigue scenario
 - a sportsbook paste did not capture the exact game context you want
 
-### 6.5 Run all simulations
+### 6.6 Run all simulations
 
 Click:
 
@@ -207,7 +219,7 @@ Typical success message:
 
 - `All simulations complete`
 
-### 6.6 Export predictions
+### 6.7 Export predictions
 
 Click:
 
@@ -222,7 +234,7 @@ Typical success message:
 
 - exported `ncaa-predictions-YYYY-MM-DD.csv`
 
-### 6.7 Export results later
+### 6.8 Export results later
 
 After games finish, click:
 
@@ -242,9 +254,26 @@ Important note:
 - this depends on ESPN access from the browser environment
 - if that fetch fails, you can still paste your own results CSV manually in the evaluation screens
 
-### 6.8 Evaluate model performance
+### 6.9 Evaluate model performance
 
 Switch to the:
+
+- `MODEL EVAL` tab
+
+What it does:
+
+- imports predictions and results from separate side-by-side input boxes
+- accepts normal exports plus cumulative spreadsheet-style prediction pastes
+- tolerates extra summary rows at the top of pasted predictions
+- tolerates extra trailing grading columns in predictions
+- accepts comma-delimited CSV and tab-delimited spreadsheet pastes
+- accepts results with or without header rows
+- shows per-market ROI plus richer breakdowns like edge thresholds, ML calibration, and O/U calibration
+
+Important note:
+
+- the current NCAAM evaluation screen is the one in [ResultsWorkspace.tsx](C:\projects\game_sims\ncaam-predictor\src\components\ResultsWorkspace.tsx)
+- if you see an older `Pending`-style summary card layout, verify you are actually running the NCAAM app and not another predictor project in the workspace
 
 - `RESULTS TRACKER` tab
 - `MODEL EVAL` tab
@@ -320,9 +349,9 @@ Use this sequence for most days:
 1. start `npm run dev`
 2. open `http://localhost:5173`
 3. click `IMPORT` and paste Barttorvik or KenPom data if desired
-4. click `ENTER GAMES`
-5. paste the current slate or sportsbook board
-6. adjust odds, neutral-site, or B2B flags if needed
+4. click `LOAD ESPN SLATE`
+5. paste or edit sportsbook odds if needed
+6. adjust neutral-site or B2B flags if needed
 7. click `RUN ALL SIMS`
 8. click `PREDICTIONS CSV`
 9. after games finish, click `RESULTS CSV` or prepare a manual results file
@@ -411,6 +440,19 @@ Fixes:
 
 - retry with working network access in the browser
 - if needed, use a manually prepared results CSV in the evaluation tabs
+
+### ESPN slate loads but odds are blank
+
+Symptoms:
+
+- games appear but betting lines are empty
+
+Fixes:
+
+- confirm `.env.local` contains `VITE_ODDS_API_KEY`
+- restart `npm run dev` after changing env vars
+- remember that The Odds API may not have all markets for every game/bookmaker
+- if needed, paste sportsbook odds or edit the row manually
 
 ## 10. Running Checks
 

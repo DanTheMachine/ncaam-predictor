@@ -174,12 +174,14 @@ export interface ResultRow {
   away: string
   hScore: number
   aScore: number
+  lookupKey?: string
 }
 
 export interface PredictionCsvRow {
   date: string
   home: string
   away: string
+  lookupKey?: string
   hProj: number | null
   aProj: number | null
   modelTotal: number | null
@@ -239,6 +241,51 @@ export interface EvalSummary {
   ml: EvalMarketSummary
   spr: EvalMarketSummary
   ou: EvalMarketSummary
+}
+
+export interface EvalCountsSummary {
+  matchedGames: number
+  totalBets: number
+  unmatchedPredictions: number
+  unmatchedResults: number
+}
+
+export interface EdgeThresholdSummary {
+  label: string
+  bets: number
+  wins: number
+  losses: number
+  pushes: number
+  hitRate: number
+  roiPct: number
+}
+
+export interface ProbabilityCalibrationBucket {
+  label: string
+  games: number
+  accuracy: number
+  avgPredicted: number
+}
+
+export interface DirectionalCalibrationSummary {
+  label: string
+  games: number
+  avgEdge: number
+  wins: number
+  losses: number
+  pushes: number
+  hitRate: number
+  units: number
+  roiPct: number
+  tracked: boolean
+}
+
+export interface DetailedEvalSummary {
+  counts: EvalCountsSummary
+  edgeThresholds: EdgeThresholdSummary[]
+  mlCalibration: ProbabilityCalibrationBucket[]
+  ouCalibration: DirectionalCalibrationSummary[]
+  ouEdgeBuckets: DirectionalCalibrationSummary[]
 }
 
 export interface AggregateStats {

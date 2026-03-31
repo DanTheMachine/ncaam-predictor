@@ -64,6 +64,7 @@ export default function NCAAPredictor() {
     setShowSingleGameTools,
     showBulkImport,
     setShowBulkImport,
+    espnLoading,
     bulkPaste,
     bulkStatus,
     bulkError,
@@ -81,6 +82,7 @@ export default function NCAAPredictor() {
     runSim,
     applyManualOdds,
     handleBulkGames,
+    handleLoadEspnSlate,
     handleRunAllSims,
     saveEdit,
     handleExport,
@@ -123,6 +125,7 @@ export default function NCAAPredictor() {
     setEvalCalibration,
     gradedRows,
     evalSummary,
+    detailedEval,
     stats,
     resultsLogLength,
     predLogLength,
@@ -242,6 +245,7 @@ export default function NCAAPredictor() {
                 slateGameType={slateGameType}
                 slateNeutral={slateNeutral}
                 showBulkImport={showBulkImport}
+                espnLoading={espnLoading}
                 bulkPaste={bulkPaste}
                 bulkStatus={bulkStatus}
                 bulkError={bulkError}
@@ -252,6 +256,7 @@ export default function NCAAPredictor() {
                 simsRunning={simsRunning}
                 gameTypes={GAME_TYPES}
                 onToggleBulkImport={() => setShowBulkImport(!showBulkImport)}
+                onLoadEspnSlate={handleLoadEspnSlate}
                 onRunAllSims={handleRunAllSims}
                 onExportPredictions={handleExport}
                 onExportResults={handleExportResults}
@@ -360,6 +365,7 @@ export default function NCAAPredictor() {
             evalThresholds={evalThresholds}
             evalCalibration={evalCalibration}
             evalSummary={evalSummary}
+            detailedEval={detailedEval}
             gradedRows={gradedRows}
             stats={stats}
             evalResultsFileRef={evalResultsFileRef}

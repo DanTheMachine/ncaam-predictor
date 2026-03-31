@@ -255,6 +255,36 @@ Current options:
 
 This still does not fully auto-fetch Barttorvik from the web. Full one-click remote sync would likely need a backend or other automation layer.
 
+### Slate loading workflow
+
+The predictor slate can now be loaded from ESPN based on the selected `slateDate`, with sportsbook paste kept as the backup/manual override path.
+
+Current behavior:
+
+- primary slate source is ESPN scoreboard data for the selected date
+- sportsbook paste remains available as a backup/manual override
+- the existing `slateDate` state in [usePredictorState.ts](C:\projects\game_sims\ncaam-predictor\src\hooks\usePredictorState.ts) drives the ESPN fetch
+- ESPN team-name normalization and internal alias matching are handled in [usePredictorState.ts](C:\projects\game_sims\ncaam-predictor\src\hooks\usePredictorState.ts)
+- slate rows are populated with teams, game time, and neutral-site flags when available from ESPN
+
+### Initial odds seeding
+
+The app can now optionally seed initial odds onto an ESPN-loaded slate using The Odds API.
+
+Current behavior:
+
+- if `VITE_ODDS_API_KEY` is present, the app attempts to fetch `basketball_ncaab` odds from The Odds API for the selected date
+- initial moneyline, spread, and total values are merged onto matching ESPN slate rows when a supported bookmaker has all required markets
+- preferred bookmakers currently include DraftKings, FanDuel, BetMGM, Caesars, ESPN BET, BetRivers, and Bovada
+- if no Odds API key is configured, the slate still loads from ESPN and simply skips initial odds seeding
+- pasted sportsbook odds and manual row edits remain the override path after the initial seed
+
+Important limitation:
+
+- ESPN is used only for schedule/slate data
+- sportsbook odds are not fetched from ESPN
+- The Odds API key currently lives in the frontend Vite environment, so this setup is best treated as a local/personal workflow rather than a secure production secret
+
 ### Model Eval tab
 
 There is now a dedicated Model Eval tab composed through:
@@ -267,8 +297,17 @@ Current behavior:
 
 - accepts predictions CSV by matching file button or open textarea paste
 - accepts results CSV by matching file button or open textarea paste
+- accepts cumulative spreadsheet-style prediction pastes with extra rows at the top, extra columns at the end, and tab-delimited clipboard content
+- accepts results CSV with or without a header row
 - reports per-market summaries for ML, spread, and O/U
 - shows both all graded bets and "Actual" bets filtered by edge threshold and calibration
+- now includes richer evaluation sections tailored to college basketball:
+  - matched games / total bets / unmatched counts
+  - ROI by market
+  - edge-threshold buckets
+  - ML calibration buckets
+  - O/U calibration by recommendation direction
+  - O/U edge buckets
 - uses explicit exported edge fields:
   - `ML Rec`
   - `ML Edge`
@@ -282,6 +321,17 @@ Important nuance:
 
 - `Actual Bets` in Model Eval currently means bets that pass the user-set threshold after calibration scaling
 - it does not mean manually confirmed placed wagers from a bookmaker history feed
+- ML and spread summaries are intended to count only explicit non-`PASS` recommendations; if a UI shows `Pending` counts for ML/spread with no recommendations, verify you are not looking at a different app's older `ModelEvaluation` component
+
+### Cross-app UI confusion note
+
+During recent debugging, a `Pending`-style market summary card was reported against the NCAAM app, but that exact renderer text was traced to a different predictor app in the broader workspace rather than this app's current [ResultsWorkspace.tsx](C:\projects\game_sims\ncaam-predictor\src\components\ResultsWorkspace.tsx).
+
+Important takeaway:
+
+- the active NCAAM evaluation UI lives in [ResultsWorkspace.tsx](C:\projects\game_sims\ncaam-predictor\src\components\ResultsWorkspace.tsx)
+- older NBA/NHL-style `ModelEvaluation.tsx` components in sibling projects may show a different card format with `Pending` counts
+- when debugging evaluation summaries, confirm the running app and component path before assuming the bug is in NCAAM
 
 ### Predictor layout changes
 
