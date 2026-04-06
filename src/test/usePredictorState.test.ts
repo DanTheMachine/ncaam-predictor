@@ -243,6 +243,9 @@ describe("usePredictorState", () => {
     const { result } = renderHook(() => usePredictorState());
     act(() => {
       result.current.handleBulkPasteChange("KU @ DUKE, 7:00 PM ET");
+    });
+
+    act(() => {
       result.current.handleBulkGames();
     });
 
@@ -250,6 +253,9 @@ describe("usePredictorState", () => {
 
     act(() => {
       result.current.setKpPaste(VSIN_SAMPLE);
+    });
+
+    act(() => {
       result.current.handleKPImport();
     });
 
@@ -267,6 +273,9 @@ describe("usePredictorState", () => {
     const { result } = renderHook(() => usePredictorState());
     act(() => {
       result.current.handleBulkPasteChange("KU @ DUKE, 7:00 PM ET");
+    });
+
+    act(() => {
       result.current.handleBulkGames();
     });
 
@@ -306,6 +315,9 @@ describe("usePredictorState", () => {
 
     act(() => {
       result.current.handleBulkPasteChange("KU @ DUKE, 7:00 PM ET");
+    });
+
+    act(() => {
       result.current.handleBulkGames();
     });
 
@@ -339,6 +351,9 @@ describe("usePredictorState", () => {
 
     act(() => {
       result.current.setSharpPaste(VSIN_SAMPLE);
+    });
+
+    act(() => {
       result.current.handleSharpImport();
     });
 
