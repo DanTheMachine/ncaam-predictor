@@ -1,5 +1,5 @@
 import { TEAMS } from "../data/ncaaData";
-import type { BettingAnalysis, LiveStatsMap, Odds, PredictionResult, TeamData } from "../types";
+import type { BettingAnalysis, LiveStatsMap, Odds, PredictionResult, SharpGameSignal, TeamData } from "../types";
 
 const ML_EDGE_THRESHOLD = 0.065;
 const SPREAD_EDGE_THRESHOLD = 0.055;
@@ -19,6 +19,11 @@ const LEAGUE_BASELINES = {
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const sharpDelta = (handlePct: number, betsPct: number) => handlePct - betsPct;
+const sharpBoost = (delta: number, handlePct: number) => {
+  if (handlePct < 52 || delta <= 3) return 0;
+  return clamp((delta - 3) * 0.003, 0, 0.018);
+};
 
 interface MatchupContext {
   gameType: string
@@ -230,13 +235,41 @@ export function mlAmerican(prob: number): string {
   if (prob <= 0 || prob >= 1) return "N/A";
   return prob >= 0.5 ? `-${Math.round(prob / (1 - prob) * 100)}` : `+${Math.round((1 - prob) / prob * 100)}`;
 }
-export function analyzeBetting(result: PredictionResult, odds: Odds): BettingAnalysis {
+export function analyzeBetting(result: PredictionResult, odds: Odds, sharpSignal?: SharpGameSignal | null): BettingAnalysis {
+  const sharpHomeMlBoost = sharpSignal ? sharpBoost(sharpDelta(sharpSignal.moneyline.home.handlePct, sharpSignal.moneyline.home.betsPct), sharpSignal.moneyline.home.handlePct) : 0;
+  const sharpAwayMlBoost = sharpSignal ? sharpBoost(sharpDelta(sharpSignal.moneyline.away.handlePct, sharpSignal.moneyline.away.betsPct), sharpSignal.moneyline.away.handlePct) : 0;
+  const sharpHomeSpreadBoost = sharpSignal ? sharpBoost(sharpDelta(sharpSignal.spread.home.handlePct, sharpSignal.spread.home.betsPct), sharpSignal.spread.home.handlePct) : 0;
+  const sharpAwaySpreadBoost = sharpSignal ? sharpBoost(sharpDelta(sharpSignal.spread.away.handlePct, sharpSignal.spread.away.betsPct), sharpSignal.spread.away.handlePct) : 0;
+  const sharpOverBoost = sharpSignal ? sharpBoost(sharpDelta(sharpSignal.total.over.handlePct, sharpSignal.total.over.betsPct), sharpSignal.total.over.handlePct) : 0;
+  const sharpUnderBoost = sharpSignal ? sharpBoost(sharpDelta(sharpSignal.total.under.handlePct, sharpSignal.total.under.betsPct), sharpSignal.total.under.handlePct) : 0;
+  const sharpMlSide = sharpHomeMlBoost > sharpAwayMlBoost ? "home" : sharpAwayMlBoost > sharpHomeMlBoost ? "away" : "none";
+  const sharpSpreadSide = sharpHomeSpreadBoost > sharpAwaySpreadBoost ? "home" : sharpAwaySpreadBoost > sharpHomeSpreadBoost ? "away" : "none";
+  const sharpTotalSide = sharpOverBoost > sharpUnderBoost ? "over" : sharpUnderBoost > sharpOverBoost ? "under" : "none";
+  const sharpMlRow =
+    !sharpSignal || sharpMlSide === "none"
+      ? null
+      : sharpMlSide === "home"
+        ? sharpSignal.moneyline.home
+        : sharpSignal.moneyline.away;
+  const sharpSpreadRow =
+    !sharpSignal || sharpSpreadSide === "none"
+      ? null
+      : sharpSpreadSide === "home"
+        ? sharpSignal.spread.home
+        : sharpSignal.spread.away;
+  const sharpTotalRow =
+    !sharpSignal || sharpTotalSide === "none"
+      ? null
+      : sharpTotalSide === "over"
+        ? sharpSignal.total.over
+        : sharpSignal.total.under;
+
   const hI  = americanToImplied(odds.homeMoneyline);
   const aI  = americanToImplied(odds.awayMoneyline);
   const vig = hI + aI;
   const hIC = hI / vig, aIC = aI / vig;
-  const hEdge = result.hWinProb - hIC;
-  const aEdge = result.aWinProb - aIC;
+  const hEdge = result.hWinProb - hIC + sharpHomeMlBoost;
+  const aEdge = result.aWinProb - aIC + sharpAwayMlBoost;
   const homeMlQualifies =
     result.hWinProb >= 0.5 + ML_PROBABILITY_BUFFER &&
     hEdge > ML_EDGE_THRESHOLD;
@@ -253,8 +286,8 @@ export function analyzeBetting(result: PredictionResult, odds: Odds): BettingAna
   const spHI     = americanToImplied(odds.spreadHomeOdds || -110);
   const spAI     = americanToImplied(odds.spreadAwayOdds || -110);
   const spVig    = spHI + spAI;
-  const spHEdge  = hCover - spHI / spVig;
-  const spAEdge  = aCover - spAI / spVig;
+  const spHEdge  = hCover - spHI / spVig + sharpHomeSpreadBoost;
+  const spAEdge  = aCover - spAI / spVig + sharpAwaySpreadBoost;
   const homeSpreadProjection = diff + (odds.spread ?? -4);
   const awaySpreadProjection = -homeSpreadProjection;
   const homeSpreadQualifies =
@@ -274,8 +307,8 @@ export function analyzeBetting(result: PredictionResult, odds: Odds): BettingAna
   const ovI    = americanToImplied(odds.overOdds  || -110);
   const unI    = americanToImplied(odds.underOdds || -110);
   const ouVig  = ovI + unI;
-  const ouOverEdge  = pOver  - ovI / ouVig;
-  const ouUnderEdge = pUnder - unI / ouVig;
+  const ouOverEdge  = pOver  - ovI / ouVig + sharpOverBoost;
+  const ouUnderEdge = pUnder - unI / ouVig + sharpUnderBoost;
   const overQualifies =
     ouEdge >= TOTAL_POINT_BUFFER &&
     ouOverEdge > TOTAL_EDGE_THRESHOLD;
@@ -302,6 +335,18 @@ export function analyzeBetting(result: PredictionResult, odds: Odds): BettingAna
     kellyHome: hEdge > 0 ? (hEdge / (1 - hIC)) * 0.25 : 0,
     kellyAway: aEdge > 0 ? (aEdge / (1 - aIC)) * 0.25 : 0,
     kellySpread, kellyOU,
+    sharpMlSide,
+    sharpMlBoostPct: Math.max(sharpHomeMlBoost, sharpAwayMlBoost) * 100,
+    sharpMlHandlePct: sharpMlRow?.handlePct ?? 0,
+    sharpMlBetsPct: sharpMlRow?.betsPct ?? 0,
+    sharpSpreadSide,
+    sharpSpreadBoostPct: Math.max(sharpHomeSpreadBoost, sharpAwaySpreadBoost) * 100,
+    sharpSpreadHandlePct: sharpSpreadRow?.handlePct ?? 0,
+    sharpSpreadBetsPct: sharpSpreadRow?.betsPct ?? 0,
+    sharpTotalSide,
+    sharpTotalBoostPct: Math.max(sharpOverBoost, sharpUnderBoost) * 100,
+    sharpTotalHandlePct: sharpTotalRow?.handlePct ?? 0,
+    sharpTotalBetsPct: sharpTotalRow?.betsPct ?? 0,
   };
 }
 

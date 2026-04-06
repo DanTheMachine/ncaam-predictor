@@ -10,6 +10,7 @@ The app supports:
 - slate import from sportsbook paste text
 - Money Line, Spread, and Total bet analysis
 - importing live team stats from Barttorvik or KenPom
+- importing VSiN betting splits as game-level sharp signals
 - exporting predictions/results CSVs
 - a results tracker for grading past picks
 - a dedicated Model Eval tab for ROI review
@@ -69,6 +70,7 @@ The project was refactored from one very large component into smaller modules.
   - projected score and total logic
   - Money Line and spread probability logic
   - betting edge analysis
+  - VSiN sharp-signal boosts for ML, spread, and total recommendations
   - CSV download helper
 
 ### Testing and CI
@@ -99,6 +101,11 @@ The project was refactored from one very large component into smaller modules.
   - parses sportsbook paste formats
   - resolves team names through aliases and abbreviations
   - can now return unmatched-team diagnostics
+
+- [sharpSignals.ts](C:\projects\game_sims\ncaam-predictor\src\lib\sharpSignals.ts)
+  - parses VSiN betting-splits paste blocks
+  - resolves two-row matchup input into game-level sharp signals
+  - attaches handle-vs-bets data to the current slate
 
 ### Reusable UI
 
@@ -231,6 +238,26 @@ The old fixed logistic/capped approach was replaced with:
 - normal-distribution style conversion from projected margin to win/cover probability
 - shared distribution logic across side and ATS
 - recent follow-up work widened margin volatility assumptions to reduce oversized ML and ATS edges across large slates
+
+### VSiN sharp data workflow
+
+The predictor now supports a dedicated `VSIN SHARP DATA` step in the main workflow.
+
+Current behavior:
+
+- VSiN data is imported as game-level input after stats import and before slate simulation
+- the source panel includes a direct link to:
+  - [https://data.vsin.com/betting-splits/?source=DK&sport=CBB](https://data.vsin.com/betting-splits/?source=DK&sport=CBB)
+- successful VSiN import attaches sharp signals to matched slate games
+- the sharp import panel now supports hide/show behavior and auto-collapses after a successful import
+- sharp data does not change the core projected score from `predictGame(...)`
+- sharp data does influence betting recommendations through modest ML, spread, and total edge boosts in `analyzeBetting(...)`
+- sim summary cards now show sharp support as:
+  - side
+  - handle %
+  - bets %
+  - edge boost %
+- exported prediction CSVs now include sharp columns for ML, spread, and total
 
 ### Edge display fix
 

@@ -199,6 +199,10 @@ interface SlateControlsPanelProps {
   bulkStatus: string;
   bulkError: string;
   bulkUnmatched: UnmatchedTeam[];
+  sharpPaste: string;
+  sharpStatus: string;
+  sharpError: string;
+  showSharp: boolean;
   schedStatus: string;
   linesCount: number;
   hasSimResults: boolean;
@@ -216,6 +220,10 @@ interface SlateControlsPanelProps {
   onBulkPasteChange: (value: string) => void;
   onHandleBulkGames: () => void;
   onClearBulkImport: () => void;
+  onSharpPasteChange: (value: string) => void;
+  onHandleSharpImport: () => void;
+  onClearSharpImport: () => void;
+  onToggleSharpImport: () => void;
 }
 
 export function SlateControlsPanel({
@@ -228,6 +236,10 @@ export function SlateControlsPanel({
   bulkStatus,
   bulkError,
   bulkUnmatched,
+  sharpPaste,
+  sharpStatus,
+  sharpError,
+  showSharp,
   schedStatus,
   linesCount,
   hasSimResults,
@@ -245,9 +257,83 @@ export function SlateControlsPanel({
   onBulkPasteChange,
   onHandleBulkGames,
   onClearBulkImport,
+  onSharpPasteChange,
+  onHandleSharpImport,
+  onClearSharpImport,
+  onToggleSharpImport,
 }: SlateControlsPanelProps) {
   return (
     <>
+      <div style={{ background: "rgba(96,165,250,0.03)", border: "1px solid rgba(96,165,250,0.14)", borderRadius: 6, padding: 14, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: showSharp ? 12 : 0 }}>
+          <div>
+            <div style={{ fontSize: 9, color: "#93c5fd", letterSpacing: 3, marginBottom: 5, fontWeight: 700 }}>VSIN SHARP DATA</div>
+            <div style={{ fontSize: 10, color: sharpStatus && !sharpError ? "#4ade80" : "#93a9c9", lineHeight: 1.8 }}>
+              {sharpStatus && !sharpError
+                ? sharpStatus
+                : "Step 2 after team stats: paste VSiN spread, total, and moneyline handle-vs-bets splits here."}
+            </div>
+            {sharpError && <div style={{ fontSize: 10, color: "#f87171", marginTop: 4 }}>Warning: {sharpError}</div>}
+          </div>
+          <button
+            onClick={onToggleSharpImport}
+            style={{
+              background: showSharp ? "rgba(29,78,216,0.14)" : "linear-gradient(135deg,#1d4ed8,#2563eb)",
+              border: showSharp ? "1px solid rgba(147,197,253,0.3)" : "none",
+              borderRadius: 4,
+              padding: "8px 16px",
+              color: showSharp ? "#93c5fd" : "#fff",
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: 2,
+              fontFamily: "'Courier New',monospace",
+              cursor: "pointer",
+            }}
+          >
+            {showSharp ? "â–² HIDE" : sharpStatus && !sharpError ? "â†» UPDATE" : "â¬‡ IMPORT"}
+          </button>
+        </div>
+        {showSharp && (
+          <div style={{ animation: "fadeUp 0.2s ease" }}>
+            <div style={{ fontSize: 10, color: "#93a9c9", lineHeight: 1.9, marginBottom: 10 }}>
+              <div>This is game-level input and supports the recommendation engine without changing the core score projection.</div>
+              <a href="https://data.vsin.com/betting-splits/?source=DK&sport=CBB" target="_blank" rel="noreferrer" style={{ color: "#93c5fd", textDecoration: "none" }}>
+                https://data.vsin.com/betting-splits/?source=DK&sport=CBB
+              </a>
+            </div>
+        <textarea
+          value={sharpPaste}
+          onChange={(event) => onSharpPasteChange(event.target.value)}
+          placeholder={"CBB - Monday, Apr 6\tSpread\tHandle\tBets\tTotal\tHandle\tBets\tMoney\tHandle\tBets\n↺\t(2) Connecticut\t+6.5\t30%\t36%\t145.5\t79%\t74%\t+230\t42%\t53%\n▼\n17\t(1) Michigan\t-6.5\t70%\t64%\t145.5\t21%\t26%\t-285\t58%\t47%\n▲"}
+          style={{ width: "100%", height: 110, background: "#0a0600", border: "1px solid rgba(96,165,250,0.18)", borderRadius: 4, color: "#f0e8d0", fontSize: 11, fontFamily: "monospace", padding: 10, resize: "vertical", boxSizing: "border-box", outline: "none" }}
+        />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginTop: 8 }}>
+          <button
+            onClick={onHandleSharpImport}
+            disabled={!sharpPaste.trim()}
+            style={{
+              padding: "9px 0",
+              background: sharpPaste.trim() ? "linear-gradient(135deg,#1d4ed8,#2563eb)" : "rgba(96,165,250,0.04)",
+              border: sharpPaste.trim() ? "none" : "1px solid rgba(96,165,250,0.08)",
+              borderRadius: 4,
+              color: sharpPaste.trim() ? "#fff" : "#6b86b1",
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: 3,
+              fontFamily: "monospace",
+              cursor: sharpPaste.trim() ? "pointer" : "not-allowed",
+            }}
+          >
+            IMPORT VSIN DATA
+          </button>
+          <button onClick={onClearSharpImport} style={{ padding: "9px 14px", background: "transparent", border: "1px solid rgba(96,165,250,0.12)", borderRadius: 4, color: "#93c5fd", fontSize: 9, fontFamily: "monospace", cursor: "pointer" }}>
+            CLEAR
+          </button>
+        </div>
+          </div>
+        )}
+      </div>
+
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: schedStatus ? 12 : 0 }}>
         <div>
           <div style={{ fontSize: 9, fontWeight: 700, color: "#b28a57", letterSpacing: 3, marginBottom: 3 }}>
@@ -450,6 +536,44 @@ export function SlateControlsPanel({
           {bulkError && <div style={{ fontSize: 10, color: "#f87171", marginTop: 6 }}>Warning: {bulkError}</div>}
         </div>
       )}
+
+      {false && <div style={{ background: "rgba(96,165,250,0.03)", border: "1px solid rgba(96,165,250,0.14)", borderRadius: 6, padding: 14, marginBottom: 12 }}>
+        <div style={{ fontSize: 9, color: "#93c5fd", letterSpacing: 3, marginBottom: 8, fontWeight: 700 }}>VSIN SHARP DATA</div>
+        <div style={{ fontSize: 10, color: "#93a9c9", lineHeight: 1.9, marginBottom: 10 }}>
+          Paste VSiN spread, total, and moneyline handle-vs-bets splits here. This is game-level input and will be applied to the current slate separately from team stats.
+        </div>
+        <textarea
+          value={sharpPaste}
+          onChange={(event) => onSharpPasteChange(event.target.value)}
+          placeholder={"CBB - Monday, Apr 6\tSpread\tHandle\tBets\tTotal\tHandle\tBets\tMoney\tHandle\tBets\n↺\t(2) Connecticut\t+6.5\t30%\t36%\t145.5\t79%\t74%\t+230\t42%\t53%\n▼\n17\t(1) Michigan\t-6.5\t70%\t64%\t145.5\t21%\t26%\t-285\t58%\t47%\n▲"}
+          style={{ width: "100%", height: 110, background: "#0a0600", border: "1px solid rgba(96,165,250,0.18)", borderRadius: 4, color: "#f0e8d0", fontSize: 11, fontFamily: "monospace", padding: 10, resize: "vertical", boxSizing: "border-box", outline: "none" }}
+        />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginTop: 8 }}>
+          <button
+            onClick={onHandleSharpImport}
+            disabled={!sharpPaste.trim()}
+            style={{
+              padding: "9px 0",
+              background: sharpPaste.trim() ? "linear-gradient(135deg,#1d4ed8,#2563eb)" : "rgba(96,165,250,0.04)",
+              border: sharpPaste.trim() ? "none" : "1px solid rgba(96,165,250,0.08)",
+              borderRadius: 4,
+              color: sharpPaste.trim() ? "#fff" : "#6b86b1",
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: 3,
+              fontFamily: "monospace",
+              cursor: sharpPaste.trim() ? "pointer" : "not-allowed",
+            }}
+          >
+            IMPORT VSIN DATA
+          </button>
+          <button onClick={onClearSharpImport} style={{ padding: "9px 14px", background: "transparent", border: "1px solid rgba(96,165,250,0.12)", borderRadius: 4, color: "#93c5fd", fontSize: 9, fontFamily: "monospace", cursor: "pointer" }}>
+            CLEAR
+          </button>
+        </div>
+        {sharpStatus && <div style={{ fontSize: 10, color: "#4ade80", marginTop: 6 }}>{sharpStatus}</div>}
+        {sharpError && <div style={{ fontSize: 10, color: "#f87171", marginTop: 6 }}>Warning: {sharpError}</div>}
+      </div>}
 
       {bulkUnmatched.length > 0 && (
         <div style={{ marginBottom: 12, padding: "10px 12px", background: "rgba(248,113,113,0.05)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: 4 }}>
@@ -693,6 +817,18 @@ interface SummaryBetting {
   spreadEdge: number;
   ouRec: "over" | "under" | "pass";
   ouEdgePct: number;
+  sharpMlSide: "home" | "away" | "none";
+  sharpMlBoostPct: number;
+  sharpMlHandlePct: number;
+  sharpMlBetsPct: number;
+  sharpSpreadSide: "home" | "away" | "none";
+  sharpSpreadBoostPct: number;
+  sharpSpreadHandlePct: number;
+  sharpSpreadBetsPct: number;
+  sharpTotalSide: "over" | "under" | "none";
+  sharpTotalBoostPct: number;
+  sharpTotalHandlePct: number;
+  sharpTotalBetsPct: number;
 }
 
 interface SimSummaryRow {
@@ -780,7 +916,7 @@ export function SimSummaryPanel({ rows }: SimSummaryPanelProps) {
                     <span style={{ fontSize: 8, color: "#b28a57", letterSpacing: 2, fontWeight: 700 }}>EDGE SUMMARY</span>
                     <span style={{ fontSize: 9, color: "#c8a850" }}>Proj: {sim.hScore}–{sim.aScore} ({sim.total})</span>
                   </div>
-                  {[
+                  {[ 
                     { label: "ML", active: betting.mlValueSide !== "none", text: betting.mlValueSide !== "none" ? `${betting.mlValueSide.toUpperCase()} +${betting.mlValuePct.toFixed(1)}%` : "PASS" },
                     { label: "SPR", active: betting.spreadRec !== "pass", text: betting.spreadRec !== "pass" ? `+${betting.spreadEdge.toFixed(1)}%` : "PASS" },
                     { label: "O/U", active: betting.ouRec !== "pass", text: betting.ouRec !== "pass" ? `${betting.ouRec.toUpperCase()} +${betting.ouEdgePct.toFixed(1)}%` : "PASS" },
@@ -790,6 +926,45 @@ export function SimSummaryPanel({ rows }: SimSummaryPanelProps) {
                       <span style={{ fontSize: 9, fontWeight: 700, color: item.active ? "#4ade80" : "#2a1a0a", fontFamily: "monospace" }}>{item.text}</span>
                     </div>
                   ))}
+                  {(betting.sharpMlSide !== "none" || betting.sharpSpreadSide !== "none" || betting.sharpTotalSide !== "none") && (
+                    <div style={{ marginTop: 7, paddingTop: 7, borderTop: "1px solid rgba(96,165,250,0.12)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                        <span style={{ fontSize: 8, color: "#93c5fd", letterSpacing: 2, fontWeight: 700 }}>SHARP SUPPORT</span>
+                        <span style={{ fontSize: 8, color: "#6b86b1" }}>VSiN handle vs bets</span>
+                      </div>
+                      {[
+                        {
+                          label: "ML",
+                          active: betting.sharpMlSide !== "none",
+                          text:
+                            betting.sharpMlSide !== "none"
+                              ? `${betting.sharpMlSide.toUpperCase()} ${betting.sharpMlHandlePct.toFixed(0)}%/${betting.sharpMlBetsPct.toFixed(0)}% | Edge +${betting.sharpMlBoostPct.toFixed(1)}%`
+                              : "NONE",
+                        },
+                        {
+                          label: "SPR",
+                          active: betting.sharpSpreadSide !== "none",
+                          text:
+                            betting.sharpSpreadSide !== "none"
+                              ? `${betting.sharpSpreadSide.toUpperCase()} ${betting.sharpSpreadHandlePct.toFixed(0)}%/${betting.sharpSpreadBetsPct.toFixed(0)}% | Edge +${betting.sharpSpreadBoostPct.toFixed(1)}%`
+                              : "NONE",
+                        },
+                        {
+                          label: "O/U",
+                          active: betting.sharpTotalSide !== "none",
+                          text:
+                            betting.sharpTotalSide !== "none"
+                              ? `${betting.sharpTotalSide.toUpperCase()} ${betting.sharpTotalHandlePct.toFixed(0)}%/${betting.sharpTotalBetsPct.toFixed(0)}% | Edge +${betting.sharpTotalBoostPct.toFixed(1)}%`
+                              : "NONE",
+                        },
+                      ].map((item) => (
+                        <div key={`sharp-${item.label}`} style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
+                          <span style={{ fontSize: 9, color: "#93a9c9" }}>{item.label}</span>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: item.active ? "#93c5fd" : "#334155", fontFamily: "monospace" }}>{item.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

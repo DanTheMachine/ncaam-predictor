@@ -3,6 +3,7 @@ import { GAME_TYPES, KENPOM_NAME_MAP, TEAMS } from "../data/ncaaData";
 import { analyzeBetting, downloadCSV, mlAmerican, predictGame } from "../lib/predictionEngine";
 import { fetchEspnScoreboard, formatEspnDateParam } from "../lib/espn";
 import { extractInitialOdds, fetchOddsApiEvents, hasOddsApiKey, type OddsApiEvent } from "../lib/oddsApi";
+import { parseSharpSignals } from "../lib/sharpSignals";
 import { parseStatsCSV } from "../lib/statsParser";
 import { parseSbookWithDiagnostics } from "../lib/sportsbookParser";
 import type {
@@ -11,6 +12,7 @@ import type {
   ManualOddsForm,
   Odds,
   PredictionResult,
+  SharpGameSignal,
   SlateTableRow,
   TeamData,
   UnmatchedTeam,
@@ -169,6 +171,18 @@ const buildOddsByMatchup = (events: OddsApiEvent[]): Record<string, Odds> =>
     return acc;
   }, {});
 
+const attachSharpSignals = (rows: SlateTableRow[], sharpSignals: Record<string, SharpGameSignal>): SlateTableRow[] =>
+  rows.map((row) => ({
+    ...row,
+    sharpSignal: sharpSignals[`${row.game.awayAbbr}@${row.game.homeAbbr}`.toUpperCase()] ?? null,
+  }));
+
+const looksLikeSharpInput = (raw: string): boolean => {
+  const normalized = raw.toLowerCase();
+  return normalized.includes("spread\thandle\tbets") &&
+    normalized.includes("money\thandle\tbets");
+};
+
 const localToday = (): string => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -189,7 +203,12 @@ export function usePredictorState() {
   const [kpPaste, setKpPaste] = useState("");
   const [kpStatus, setKpStatus] = useState("");
   const [kpError, setKpError] = useState("");
+  const [sharpPaste, setSharpPaste] = useState("");
+  const [sharpStatus, setSharpStatus] = useState("");
+  const [sharpError, setSharpError] = useState("");
   const [showKP, setShowKP] = useState(false);
+  const [showSharp, setShowSharp] = useState(false);
+  const [sharpSignals, setSharpSignals] = useState<Record<string, SharpGameSignal>>({});
   const [statsUpdated, setStatsUpdated] = useState("");
   const [statsSource, setStatsSource] = useState("");
   const [odds, setOdds] = useState<Odds | null>(null);
@@ -259,11 +278,17 @@ export function usePredictorState() {
   };
 
   const applyImportedStats = (raw: string) => {
-    const { stats, count, timestamp, source } = parseStatsCSV(raw);
+    const { stats, count, timestamp, source, unmatchedTeams = [] } = parseStatsCSV(raw);
     setLiveStats((prev) => ({ ...prev, ...stats }));
     setStatsUpdated(timestamp);
     setStatsSource(source);
+    const totalTeams = count + unmatchedTeams.length;
+    const unmatchedSuffix = "";
     setKpStatus(`✓ Updated ${count} teams from ${source} · ${timestamp}`);
+    if (unmatchedSuffix) {
+      setKpStatus(`âœ“ Updated ${count} teams from ${source} Â· ${timestamp}${unmatchedSuffix}`);
+    }
+    setKpStatus(`Updated ${count} of ${totalTeams} teams from ${source} ${timestamp}`);
     setKpPaste("");
     setShowKP(false);
     setResult(null);
@@ -276,7 +301,11 @@ export function usePredictorState() {
       return;
     }
     try {
-      applyImportedStats(kpPaste);
+      if (looksLikeSharpInput(kpPaste)) {
+        applySharpSignals(kpPaste, { updateStatsStatus: true });
+      } else {
+        applyImportedStats(kpPaste);
+      }
     } catch (error) {
       setKpError(error instanceof Error ? error.message : "Import failed");
     }
@@ -288,7 +317,11 @@ export function usePredictorState() {
     try {
       const raw = await navigator.clipboard.readText();
       if (!raw.trim()) throw new Error("Clipboard is empty");
-      applyImportedStats(raw);
+      if (looksLikeSharpInput(raw)) {
+        applySharpSignals(raw, { updateStatsStatus: true });
+      } else {
+        applyImportedStats(raw);
+      }
     } catch (error) {
       setKpError(error instanceof Error ? error.message : "Clipboard import failed");
     }
@@ -303,9 +336,47 @@ export function usePredictorState() {
     try {
       const raw = await file.text();
       if (!raw.trim()) throw new Error("Selected file is empty");
-      applyImportedStats(raw);
+      if (looksLikeSharpInput(raw)) {
+        applySharpSignals(raw, { updateStatsStatus: true });
+      } else {
+        applyImportedStats(raw);
+      }
     } catch (error) {
       setKpError(error instanceof Error ? error.message : "File import failed");
+    }
+  };
+
+  const applySharpSignals = (raw: string, options?: { updateStatsStatus?: boolean }) => {
+    const parsed = parseSharpSignals(raw);
+    const byMatchup = parsed.reduce<Record<string, SharpGameSignal>>((acc, signal) => {
+      acc[signal.matchup.toUpperCase()] = signal;
+      return acc;
+    }, {});
+    setSharpSignals(byMatchup);
+    setLinesRows((prev) => attachSharpSignals(prev, byMatchup));
+    const message = `VSiN data successfully imported for ${parsed.length} game${parsed.length === 1 ? "" : "s"}`;
+    setSharpStatus(message);
+    if (options?.updateStatsStatus) {
+      setKpStatus(message);
+      setKpPaste("");
+      setShowKP(false);
+    } else {
+      setSharpPaste("");
+      setShowSharp(false);
+    }
+  };
+
+  const handleSharpImport = () => {
+    setSharpError("");
+    setSharpStatus("");
+    if (!sharpPaste.trim()) {
+      setSharpError("Sharp paste is empty");
+      return;
+    }
+    try {
+      applySharpSignals(sharpPaste);
+    } catch (error) {
+      setSharpError(error instanceof Error ? error.message : "Sharp import failed");
     }
   };
 
@@ -369,10 +440,10 @@ export function usePredictorState() {
         awayB2B: false,
         gameType: slateGameType,
         neutralSite: slateNeutral,
-      }));
-      const rows = allRows.filter((r) => r.homeMatched && r.awayMatched);
-      const skipped = allRows.length - rows.length;
-      setLinesRows(rows);
+        }));
+        const rows = allRows.filter((r) => r.homeMatched && r.awayMatched);
+        const skipped = allRows.length - rows.length;
+        setLinesRows(attachSharpSignals(rows, sharpSignals));
       setShowLines(true);
       setBulkUnmatched(unmatchedTeams);
       setBulkStatus(`✓ Loaded ${rows.length} game${rows.length !== 1 ? "s" : ""}${skipped ? ` · ${skipped} game(s) skipped (team not recognized)` : ""}`);
@@ -444,7 +515,7 @@ export function usePredictorState() {
         .map(([name, count]) => ({ name, count }));
       const seededOdds = rows.filter((row) => row.editedOdds).length;
 
-      setLinesRows(rows);
+      setLinesRows(attachSharpSignals(rows, sharpSignals));
       setShowLines(true);
       setShowBulkImport(false);
       setBulkUnmatched(unmatchedTeams);
@@ -527,6 +598,9 @@ export function usePredictorState() {
       "Vegas H ML", "Vegas A ML", "H ML (model)", "A ML (model)", "ML Rec", "ML Edge",
       "Vegas Spread", "Spread Home Odds", "Spread Away Odds", "Spread Rec", "Recommended Spread Line", "Spread Edge",
       "Vegas O/U", "Over Odds", "Under Odds", "O/U Rec", "Recommended Total Line", "O/U Edge", "O/U Edge %",
+      "Sharp ML Side", "Sharp ML Handle %", "Sharp ML Bets %", "Sharp ML Edge %",
+      "Sharp Spread Side", "Sharp Spread Handle %", "Sharp Spread Bets %", "Sharp Spread Edge %",
+      "Sharp Total Side", "Sharp Total Handle %", "Sharp Total Bets %", "Sharp Total Edge %",
       "H AdjEM", "A AdjEM", "H AdjO", "H AdjD", "A AdjO", "A AdjD",
       "Stats Source", "Odds Source", "LookupKey",
     ];
@@ -544,7 +618,7 @@ export function usePredictorState() {
           odds: r.editedOdds,
         });
       const od = r.editedOdds;
-      const ba = od && od.homeMoneyline !== 0 ? analyzeBetting(sim, od) : null;
+      const ba = od && od.homeMoneyline !== 0 ? analyzeBetting(sim, od, r.sharpSignal) : null;
       const h = liveStats[r.game.homeAbbr] ? { ...TEAMS[r.game.homeAbbr], ...liveStats[r.game.homeAbbr] } : TEAMS[r.game.homeAbbr];
       const a = liveStats[r.game.awayAbbr] ? { ...TEAMS[r.game.awayAbbr], ...liveStats[r.game.awayAbbr] } : TEAMS[r.game.awayAbbr];
       const dateYMD = today.replace(/-/g, "");
@@ -582,6 +656,18 @@ export function usePredictorState() {
         recTotalLine != null ? recTotalLine.toFixed(1) : "",
         ba && ba.ouRec !== "pass" ? `${ba.ouEdge > 0 ? "+" : ""}${ba.ouEdge.toFixed(1)}` : "",
         ba && ba.ouRec !== "pass" ? `${ba.ouEdgePct > 0 ? "+" : ""}${ba.ouEdgePct.toFixed(1)}%` : "",
+        ba && ba.sharpMlSide !== "none" ? ba.sharpMlSide.toUpperCase() : "",
+        ba && ba.sharpMlSide !== "none" ? `${ba.sharpMlHandlePct.toFixed(0)}%` : "",
+        ba && ba.sharpMlSide !== "none" ? `${ba.sharpMlBetsPct.toFixed(0)}%` : "",
+        ba && ba.sharpMlSide !== "none" ? `${ba.sharpMlBoostPct > 0 ? "+" : ""}${ba.sharpMlBoostPct.toFixed(1)}%` : "",
+        ba && ba.sharpSpreadSide !== "none" ? ba.sharpSpreadSide.toUpperCase() : "",
+        ba && ba.sharpSpreadSide !== "none" ? `${ba.sharpSpreadHandlePct.toFixed(0)}%` : "",
+        ba && ba.sharpSpreadSide !== "none" ? `${ba.sharpSpreadBetsPct.toFixed(0)}%` : "",
+        ba && ba.sharpSpreadSide !== "none" ? `${ba.sharpSpreadBoostPct > 0 ? "+" : ""}${ba.sharpSpreadBoostPct.toFixed(1)}%` : "",
+        ba && ba.sharpTotalSide !== "none" ? ba.sharpTotalSide.toUpperCase() : "",
+        ba && ba.sharpTotalSide !== "none" ? `${ba.sharpTotalHandlePct.toFixed(0)}%` : "",
+        ba && ba.sharpTotalSide !== "none" ? `${ba.sharpTotalBetsPct.toFixed(0)}%` : "",
+        ba && ba.sharpTotalSide !== "none" ? `${ba.sharpTotalBoostPct > 0 ? "+" : ""}${ba.sharpTotalBoostPct.toFixed(1)}%` : "",
         `${h.adjEM >= 0 ? "+" : ""}${h.adjEM.toFixed(1)}`,
         `${a.adjEM >= 0 ? "+" : ""}${a.adjEM.toFixed(1)}`,
         h.adjO.toFixed(1),
@@ -758,7 +844,7 @@ export function usePredictorState() {
       return {
         ...r,
         simResult: sim,
-        betting: hasOdds ? analyzeBetting(sim, od) : null,
+        betting: hasOdds ? analyzeBetting(sim, od, r.sharpSignal) : null,
         homeStats,
         awayStats,
       };
@@ -771,7 +857,7 @@ export function usePredictorState() {
       const sim = row.simResult;
       const od = row.editedOdds;
       if (!od || od.homeMoneyline == null || od.overUnder == null) return;
-      const ba = analyzeBetting(sim, od);
+      const ba = analyzeBetting(sim, od, row.sharpSignal);
       const matchup = `${row.game.awayAbbr} @ ${row.game.homeAbbr}`;
 
       if (ba.mlValueSide !== "none") {
@@ -836,7 +922,7 @@ export function usePredictorState() {
     .map((row) => {
       const sim = row.simResult as PredictionResult;
       const od = row.editedOdds as Odds;
-      const ba = analyzeBetting(sim, od);
+      const ba = analyzeBetting(sim, od, row.sharpSignal);
       const mlIsHome = ba.mlValueSide === "home";
       const spreadIsHome = ba.spreadRec === "home";
       const spreadProjection = spreadIsHome
@@ -896,8 +982,14 @@ export function usePredictorState() {
     kpStatus,
     kpError,
     setKpError,
+    sharpPaste,
+    setSharpPaste,
+    sharpStatus,
+    sharpError,
     showKP,
+    showSharp,
     setShowKP,
+    setShowSharp,
     statsUpdated,
     statsSource,
     odds,
@@ -931,6 +1023,7 @@ export function usePredictorState() {
     handleKPImport,
     handleClipboardImport,
     handleStatsFile,
+    handleSharpImport,
     runSim,
     applyManualOdds,
     handleBulkGames,

@@ -44,8 +44,14 @@ export default function NCAAPredictor() {
     kpStatus,
     kpError,
     setKpError,
+    sharpPaste,
+    setSharpPaste,
+    sharpStatus,
+    sharpError,
     showKP,
+    showSharp,
     setShowKP,
+    setShowSharp,
     statsUpdated,
     statsSource,
     odds,
@@ -79,6 +85,7 @@ export default function NCAAPredictor() {
     handleKPImport,
     handleClipboardImport,
     handleStatsFile,
+    handleSharpImport,
     runSim,
     applyManualOdds,
     handleBulkGames,
@@ -250,6 +257,10 @@ export default function NCAAPredictor() {
                 bulkStatus={bulkStatus}
                 bulkError={bulkError}
                 bulkUnmatched={bulkUnmatched}
+                sharpPaste={sharpPaste}
+                sharpStatus={sharpStatus}
+                sharpError={sharpError}
+                showSharp={showSharp}
                 schedStatus={schedStatus}
                 linesCount={linesRows.length}
                 hasSimResults={linesRows.some((r) => r.simResult)}
@@ -267,6 +278,10 @@ export default function NCAAPredictor() {
                 onBulkPasteChange={handleBulkPasteChange}
                 onHandleBulkGames={handleBulkGames}
                 onClearBulkImport={clearBulkImport}
+                onSharpPasteChange={setSharpPaste}
+                onHandleSharpImport={handleSharpImport}
+                onClearSharpImport={() => setSharpPaste("")}
+                onToggleSharpImport={() => setShowSharp(!showSharp)}
               />
               <SlateTablePanel
                 showLines={showLines}

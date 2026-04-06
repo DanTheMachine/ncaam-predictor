@@ -235,4 +235,132 @@ describe("usePredictorState", () => {
     });
     expect(result.current.schedStatus).toContain("seeded odds for 1");
   });
+
+  test("auto-detects VSiN sharp input pasted into the stats import box", () => {
+    const { result } = renderHook(() => usePredictorState());
+
+    const slatePaste = [
+      "UConn @ Michigan, 7:00 PM ET",
+    ].join("\n");
+
+    act(() => {
+      result.current.handleBulkPasteChange(slatePaste);
+    });
+
+    act(() => {
+      result.current.handleBulkGames();
+    });
+
+    const sharpPaste = [
+      "CBB - Monday, Apr 6\tSpread\tHandle\tBets\tTotal\tHandle\tBets\tMoney\tHandle\tBets",
+      "↺\t(2) Connecticut\t+6.5\t30%\t36%\t145.5\t79%\t74%\t+230\t42%\t53%",
+      "▼",
+      "17\t(1) Michigan\t-6.5\t70%\t64%\t145.5\t21%\t26%\t-285\t58%\t47%",
+      "▲",
+    ].join("\n");
+
+    act(() => {
+      result.current.setKpPaste(sharpPaste);
+    });
+
+    act(() => {
+      result.current.handleKPImport();
+    });
+
+    expect(result.current.kpError).toBe("");
+    expect(result.current.kpStatus).toContain("VSiN data successfully imported for 1 game");
+    expect(result.current.linesRows[0].sharpSignal).toMatchObject({
+      matchup: "UConn@MICH",
+      moneyline: {
+        home: { handlePct: 58, betsPct: 47 },
+      },
+    });
+  });
+
+  test("hides the dedicated VSiN import box after a successful sharp import", () => {
+    const { result } = renderHook(() => usePredictorState());
+
+    const slatePaste = [
+      "UConn @ Michigan, 7:00 PM ET",
+    ].join("\n");
+
+    act(() => {
+      result.current.handleBulkPasteChange(slatePaste);
+      result.current.handleBulkGames();
+      result.current.setShowSharp(true);
+      result.current.setSharpPaste([
+        "CBB - Monday, Apr 6\tSpread\tHandle\tBets\tTotal\tHandle\tBets\tMoney\tHandle\tBets",
+        "â†º\t(2) Connecticut\t+6.5\t30%\t36%\t145.5\t79%\t74%\t+230\t42%\t53%",
+        "â–¼",
+        "17\t(1) Michigan\t-6.5\t70%\t64%\t145.5\t21%\t26%\t-285\t58%\t47%",
+        "â–²",
+      ].join("\n"));
+    });
+
+    act(() => {
+      result.current.handleSharpImport();
+    });
+
+    expect(result.current.sharpStatus).toContain("VSiN data successfully imported for 1 game");
+    expect(result.current.sharpPaste).toBe("");
+    expect(result.current.showSharp).toBe(false);
+  });
+
+  test("exports prediction CSV rows with VSiN sharp columns populated", async () => {
+    const { result } = renderHook(() => usePredictorState());
+    const originalCreateElement = document.createElement.bind(document);
+    const createObjectURL = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:test");
+    const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    const click = vi.fn();
+    const createElement = vi.spyOn(document, "createElement").mockImplementation(((tagName: string) => {
+      if (tagName.toLowerCase() === "a") {
+        return {
+          click,
+          href: "",
+          download: "",
+        } as unknown as HTMLAnchorElement;
+      }
+      return originalCreateElement(tagName);
+    }) as typeof document.createElement);
+
+    act(() => {
+      result.current.handleBulkPasteChange("UConn @ Michigan, 7:00 PM ET");
+      result.current.handleBulkGames();
+      result.current.toggleEditOdds(0);
+      result.current.handleEditFieldChange("homeMoneyline", "-285");
+      result.current.handleEditFieldChange("awayMoneyline", "+230");
+      result.current.handleEditFieldChange("spread", "-6.5");
+      result.current.handleEditFieldChange("spreadHomeOdds", "-110");
+      result.current.handleEditFieldChange("spreadAwayOdds", "-110");
+      result.current.handleEditFieldChange("overUnder", "145.5");
+      result.current.handleEditFieldChange("overOdds", "-110");
+      result.current.handleEditFieldChange("underOdds", "-110");
+      result.current.saveEdit(0);
+      result.current.setSharpPaste([
+        "CBB - Monday, Apr 6\tSpread\tHandle\tBets\tTotal\tHandle\tBets\tMoney\tHandle\tBets",
+        "â†º\t(2) Connecticut\t+6.5\t30%\t36%\t145.5\t79%\t74%\t+230\t42%\t53%",
+        "â–¼",
+        "17\t(1) Michigan\t-6.5\t70%\t64%\t145.5\t21%\t26%\t-285\t58%\t47%",
+        "â–²",
+      ].join("\n"));
+      result.current.handleSharpImport();
+      result.current.runLineSim(0);
+      result.current.handleExport();
+    });
+
+    expect(click).toHaveBeenCalled();
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    const csv = await blob.text();
+    expect(csv).toContain("Sharp ML Side")
+    expect(csv).toContain("Sharp Spread Handle %")
+    expect(csv).toContain("Sharp Total Edge %")
+    expect(csv).toContain("HOME")
+    expect(csv).toContain("58%")
+    expect(csv).toContain("47%")
+
+    createElement.mockRestore();
+    createObjectURL.mockRestore();
+    revokeObjectURL.mockRestore();
+  });
 });

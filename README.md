@@ -14,6 +14,7 @@ Runbook:
 - Bulk slate import from sportsbook-style paste text
 - Moneyline, spread, and total recommendation analysis
 - Barttorvik and KenPom stats import
+- VSiN sharp-data import for game-level betting-splits signals
 - Prediction and results CSV export
 - Results Tracker and Model Eval workflows
 - Model Eval supports richer ROI review including market summaries, edge-threshold buckets, ML calibration, and O/U calibration
@@ -26,6 +27,20 @@ Runbook:
 - `npm run test:ui`: open the Vitest UI
 - `npm run test:e2e`: run Playwright E2E tests
 - `npm run build`: create a production build
+
+## Sharp Data Workflow
+
+- Import team stats first from Barttorvik or KenPom.
+- Import VSiN sharp data next from:
+  - [https://data.vsin.com/betting-splits/?source=DK&sport=CBB](https://data.vsin.com/betting-splits/?source=DK&sport=CBB)
+- Then load or edit the slate and run simulations.
+
+Important behavior:
+
+- VSiN data is game-level input, not team-stats input.
+- It does not change projected scores.
+- It does adjust the betting recommendation layer with modest ML, spread, and total edge boosts.
+- Prediction CSV exports now include the sharp side, handle %, bets %, and sharp edge % for ML, spread, and total when available.
 
 ## Optional Odds Setup
 

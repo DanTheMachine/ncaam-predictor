@@ -44,6 +44,39 @@ export interface Odds {
   underOdds: number
 }
 
+export interface SharpSideSplit {
+  handlePct: number
+  betsPct: number
+}
+
+export interface SharpMoneylineRow extends SharpSideSplit {
+  odds: number | null
+}
+
+export interface SharpMarketSignal {
+  home: SharpSideSplit
+  away: SharpSideSplit
+}
+
+export interface SharpTotalSignal {
+  line: number | null
+  over: SharpSideSplit
+  under: SharpSideSplit
+}
+
+export interface SharpMoneylineSignal {
+  home: SharpMoneylineRow
+  away: SharpMoneylineRow
+}
+
+export interface SharpGameSignal {
+  source: string
+  matchup: string
+  spread: SharpMarketSignal
+  total: SharpTotalSignal
+  moneyline: SharpMoneylineSignal
+}
+
 export interface UnmatchedTeam {
   name: string
   count: number
@@ -82,6 +115,7 @@ export interface SlateTableRow {
   homeB2B?: boolean
   awayB2B?: boolean
   editedOdds?: Odds | null
+  sharpSignal?: SharpGameSignal | null
   simResult?: PredictionResult | null
 }
 
@@ -159,6 +193,18 @@ export interface BettingAnalysis {
   kellyAway: number
   kellySpread: number
   kellyOU: number
+  sharpMlSide: 'home' | 'away' | 'none'
+  sharpMlBoostPct: number
+  sharpMlHandlePct: number
+  sharpMlBetsPct: number
+  sharpSpreadSide: 'home' | 'away' | 'none'
+  sharpSpreadBoostPct: number
+  sharpSpreadHandlePct: number
+  sharpSpreadBetsPct: number
+  sharpTotalSide: 'over' | 'under' | 'none'
+  sharpTotalBoostPct: number
+  sharpTotalHandlePct: number
+  sharpTotalBetsPct: number
 }
 
 export interface ParsedStatsResult {
@@ -166,6 +212,7 @@ export interface ParsedStatsResult {
   count: number
   timestamp: string
   source: string
+  unmatchedTeams?: UnmatchedTeam[]
 }
 
 export interface ResultRow {

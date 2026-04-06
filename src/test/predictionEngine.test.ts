@@ -147,6 +147,71 @@ describe('predictionEngine', () => {
     expect(analysis.ouRec).toBe('pass')
   })
 
+  test('analyzeBetting can use aligned sharp support as a modest edge boost', () => {
+    const result: PredictionResult = {
+      hWinProb: 0.59,
+      aWinProb: 0.41,
+      hScore: '75.0',
+      aScore: '71.0',
+      total: '147.8',
+      rawTotal: '147.8',
+      possessions: '68.4',
+      marginStdDev: 13.2,
+      totalStdDev: 14.4,
+      totalConfidence: 0.57,
+      sideConfidence: 0.54,
+      marketBlend: 0.18,
+      marketTotal: 145.5,
+      projDiff: '4.0',
+      isTournament: false,
+      neutralSite: false,
+      features: [],
+    }
+
+    const odds = {
+      homeMoneyline: -150,
+      awayMoneyline: +130,
+      spread: -3.5,
+      spreadHomeOdds: -110,
+      spreadAwayOdds: -110,
+      overUnder: 145.5,
+      overOdds: -110,
+      underOdds: -110,
+    }
+
+    const withoutSharp = analyzeBetting(result, odds)
+    const withSharp = analyzeBetting(result, odds, {
+      source: 'VSiN',
+      matchup: 'UConn@MICH',
+      spread: {
+        home: { handlePct: 70, betsPct: 60 },
+        away: { handlePct: 30, betsPct: 40 },
+      },
+      total: {
+        line: 145.5,
+        over: { handlePct: 78, betsPct: 70 },
+        under: { handlePct: 22, betsPct: 30 },
+      },
+      moneyline: {
+        home: { odds: -150, handlePct: 64, betsPct: 52 },
+        away: { odds: 130, handlePct: 36, betsPct: 48 },
+      },
+    })
+
+    expect(withSharp.mlValuePct).toBeGreaterThan(withoutSharp.mlValuePct)
+    expect(withSharp.spreadEdge).toBeGreaterThan(withoutSharp.spreadEdge)
+    expect(withSharp.ouEdgePct).toBeGreaterThan(withoutSharp.ouEdgePct)
+    expect(withSharp.sharpMlSide).toBe('home')
+    expect(withSharp.sharpMlHandlePct).toBe(64)
+    expect(withSharp.sharpMlBetsPct).toBe(52)
+    expect(withSharp.sharpSpreadSide).toBe('home')
+    expect(withSharp.sharpSpreadHandlePct).toBe(70)
+    expect(withSharp.sharpSpreadBetsPct).toBe(60)
+    expect(withSharp.sharpTotalSide).toBe('over')
+    expect(withSharp.sharpTotalHandlePct).toBe(78)
+    expect(withSharp.sharpTotalBetsPct).toBe(70)
+  })
+
   test('analyzeBetting suppresses side recommendations when the model edge is too small', () => {
     const result: PredictionResult = {
       hWinProb: 0.57,

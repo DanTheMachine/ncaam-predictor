@@ -131,7 +131,30 @@ Important note:
 
 - if you do not import live stats, the app uses the built-in baseline values in [ncaaData.ts](C:\projects\game_sims\ncaam-predictor\src\data\ncaaData.ts)
 
-### 6.2 Load today's slate from ESPN
+### 6.2 Import VSiN sharp data
+
+Use:
+
+- `VSIN SHARP DATA`
+
+Recommended source:
+
+- [https://data.vsin.com/betting-splits/?source=DK&sport=CBB](https://data.vsin.com/betting-splits/?source=DK&sport=CBB)
+
+What it does:
+
+- imports game-level handle-vs-bets splits for moneyline, spread, and total
+- matches those sharp signals to the current slate by team matchup
+- auto-hides the VSiN paste box after successful import
+- adds sharp support details to the Sim Results Summary cards
+- adds sharp columns to the exported predictions CSV
+
+Important note:
+
+- VSiN data does not change the core projected score
+- it does influence the recommendation layer by applying modest edge boosts when sharp support aligns with a side or total
+
+### 6.3 Load today's slate from ESPN
 
 Click:
 
@@ -153,7 +176,7 @@ Important note:
 - this still runs directly in the frontend with browser network access
 - if The Odds API key is not configured, the app still loads the slate and simply skips seeded odds
 
-### 6.3 If ESPN misses a game or you want to override the slate
+### 6.4 If ESPN misses a game or you want to override the slate
 
 Use either:
 
@@ -173,7 +196,7 @@ What it does:
 - attaches odds when those are available in the pasted format
 - reports unmatched team names when resolution fails
 
-### 6.4 If sportsbook lines need manual updates
+### 6.5 If sportsbook lines need manual updates
 
 Use either:
 
@@ -184,7 +207,7 @@ Important note:
 
 - pasted sportsbook odds and manual edits remain the source of truth after the initial ESPN/Odds API seed
 
-### 6.5 Adjust game settings if needed
+### 6.6 Adjust game settings if needed
 
 Each game row supports:
 
@@ -199,7 +222,7 @@ Use these if:
 - you want to test a fatigue scenario
 - a sportsbook paste did not capture the exact game context you want
 
-### 6.6 Run all simulations
+### 6.7 Run all simulations
 
 Click:
 
