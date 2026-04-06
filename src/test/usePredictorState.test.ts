@@ -241,47 +241,74 @@ describe("usePredictorState", () => {
 
   test("auto-detects VSiN sharp input pasted into the stats import box", () => {
     const { result } = renderHook(() => usePredictorState());
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        events: [
+          {
+            date: "2026-04-06T19:00:00Z",
+            competitions: [
+              {
+                neutralSite: false,
+                competitors: [
+                  { homeAway: "away", team: { abbreviation: "UCONN", shortDisplayName: "UConn", displayName: "Connecticut Huskies", location: "Connecticut" } },
+                  { homeAway: "home", team: { abbreviation: "MICH", displayName: "Michigan Wolverines" } },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    }));
 
-    act(() => {
-      result.current.handleBulkPasteChange("Connecticut @ Michigan, 7:00 PM ET");
-    });
+    return act(async () => {
+      await result.current.handleLoadEspnSlate();
+      expect(result.current.linesRows).toHaveLength(1);
 
-    act(() => {
-      result.current.handleBulkGames();
-    });
-
-    expect(result.current.linesRows).toHaveLength(1);
-
-    act(() => {
       result.current.setKpPaste(VSIN_SAMPLE);
-    });
-
-    act(() => {
       result.current.handleKPImport();
-    });
 
-    expect(result.current.kpError).toBe("");
-    expect(result.current.kpStatus).toContain("VSiN data successfully imported for 1 game");
-    expect(result.current.linesRows[0].sharpSignal).toMatchObject({
-      matchup: "UConn@MICH",
-      moneyline: {
-        home: { handlePct: 58, betsPct: 47 },
-      },
+      expect(result.current.kpError).toBe("");
+      expect(result.current.kpStatus).toContain("VSiN data successfully imported for 1 game");
+      expect(result.current.linesRows[0].sharpSignal).toMatchObject({
+        matchup: "UConn@MICH",
+        moneyline: {
+          home: { handlePct: 58, betsPct: 47 },
+        },
+      });
     });
   });
 
-  test("hides the dedicated VSiN import box after a successful sharp import", () => {
+  test("hides the dedicated VSiN import box after a successful sharp import", async () => {
     const { result } = renderHook(() => usePredictorState());
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        events: [
+          {
+            date: "2026-04-06T19:00:00Z",
+            competitions: [
+              {
+                neutralSite: false,
+                competitors: [
+                  { homeAway: "away", team: { abbreviation: "UCONN", shortDisplayName: "UConn", displayName: "Connecticut Huskies", location: "Connecticut" } },
+                  { homeAway: "home", team: { abbreviation: "MICH", displayName: "Michigan Wolverines" } },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    }));
 
-    act(() => {
-      result.current.handleBulkPasteChange("Connecticut @ Michigan, 7:00 PM ET");
-      result.current.handleBulkGames();
-      result.current.setShowSharp(true);
+    await act(async () => {
+      await result.current.handleLoadEspnSlate();
     });
 
     expect(result.current.linesRows).toHaveLength(1);
 
     act(() => {
+      result.current.setShowSharp(true);
       result.current.setSharpPaste(VSIN_SAMPLE);
     });
 
@@ -297,6 +324,25 @@ describe("usePredictorState", () => {
 
   test("exports prediction CSV rows with VSiN sharp columns populated", async () => {
     const { result } = renderHook(() => usePredictorState());
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        events: [
+          {
+            date: "2026-04-06T19:00:00Z",
+            competitions: [
+              {
+                neutralSite: false,
+                competitors: [
+                  { homeAway: "away", team: { abbreviation: "UCONN", shortDisplayName: "UConn", displayName: "Connecticut Huskies", location: "Connecticut" } },
+                  { homeAway: "home", team: { abbreviation: "MICH", displayName: "Michigan Wolverines" } },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    }));
     const originalCreateElement = document.createElement.bind(document);
     const createObjectURL = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:test");
     const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
@@ -312,9 +358,8 @@ describe("usePredictorState", () => {
       return originalCreateElement(tagName);
     }) as typeof document.createElement);
 
-    act(() => {
-      result.current.handleBulkPasteChange("Connecticut @ Michigan, 7:00 PM ET");
-      result.current.handleBulkGames();
+    await act(async () => {
+      await result.current.handleLoadEspnSlate();
     });
 
     expect(result.current.linesRows).toHaveLength(1);
