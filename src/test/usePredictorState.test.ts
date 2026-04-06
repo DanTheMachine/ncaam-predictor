@@ -243,7 +243,7 @@ describe("usePredictorState", () => {
     const { result } = renderHook(() => usePredictorState());
 
     act(() => {
-      result.current.handleBulkPasteChange("UCONN @ MICH, 7:00 PM ET");
+      result.current.handleBulkPasteChange("Connecticut @ Michigan, 7:00 PM ET");
     });
 
     act(() => {
@@ -263,7 +263,7 @@ describe("usePredictorState", () => {
     expect(result.current.kpError).toBe("");
     expect(result.current.kpStatus).toContain("VSiN data successfully imported for 1 game");
     expect(result.current.linesRows[0].sharpSignal).toMatchObject({
-      matchup: "UCONN@MICH",
+      matchup: "UConn@MICH",
       moneyline: {
         home: { handlePct: 58, betsPct: 47 },
       },
@@ -274,7 +274,7 @@ describe("usePredictorState", () => {
     const { result } = renderHook(() => usePredictorState());
 
     act(() => {
-      result.current.handleBulkPasteChange("UCONN @ MICH, 7:00 PM ET");
+      result.current.handleBulkPasteChange("Connecticut @ Michigan, 7:00 PM ET");
       result.current.handleBulkGames();
       result.current.setShowSharp(true);
     });
@@ -313,7 +313,7 @@ describe("usePredictorState", () => {
     }) as typeof document.createElement);
 
     act(() => {
-      result.current.handleBulkPasteChange("UCONN @ MICH, 7:00 PM ET");
+      result.current.handleBulkPasteChange("Connecticut @ Michigan, 7:00 PM ET");
       result.current.handleBulkGames();
     });
 
