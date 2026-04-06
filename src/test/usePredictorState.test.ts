@@ -2,6 +2,12 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 import { usePredictorState } from "../hooks/usePredictorState";
 
+const VSIN_SAMPLE = [
+  "CBB - Monday, Apr 6\tSpread\tHandle\tBets\tTotal\tHandle\tBets\tMoney\tHandle\tBets",
+  "Connecticut\t+6.5\t30%\t36%\t145.5\t79%\t74%\t+230\t42%\t53%",
+  "Michigan\t-6.5\t70%\t64%\t145.5\t21%\t26%\t-285\t58%\t47%",
+].join("\n");
+
 describe("usePredictorState", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -29,10 +35,7 @@ describe("usePredictorState", () => {
   test("loads a bulk slate and can apply manual odds to single-game state", () => {
     const { result } = renderHook(() => usePredictorState());
 
-    const slatePaste = [
-      "KU @ DUKE, 7:00 PM ET",
-      "UNC @ KY, 9:00 PM ET",
-    ].join("\n");
+    const slatePaste = ["KU @ DUKE, 7:00 PM ET", "UNC @ KY, 9:00 PM ET"].join("\n");
 
     act(() => {
       result.current.handleBulkPasteChange(slatePaste);
@@ -240,23 +243,17 @@ describe("usePredictorState", () => {
     const { result } = renderHook(() => usePredictorState());
 
     act(() => {
-      result.current.handleBulkPasteChange("UConn @ Michigan, 7:00 PM ET");
+      result.current.handleBulkPasteChange("UCONN @ MICH, 7:00 PM ET");
     });
 
     act(() => {
       result.current.handleBulkGames();
     });
 
-    const sharpPaste = [
-      "CBB - Monday, Apr 6\tSpread\tHandle\tBets\tTotal\tHandle\tBets\tMoney\tHandle\tBets",
-      "â†º\t(2) Connecticut\t+6.5\t30%\t36%\t145.5\t79%\t74%\t+230\t42%\t53%",
-      "â–¼",
-      "17\t(1) Michigan\t-6.5\t70%\t64%\t145.5\t21%\t26%\t-285\t58%\t47%",
-      "â–²",
-    ].join("\n");
+    expect(result.current.linesRows).toHaveLength(1);
 
     act(() => {
-      result.current.setKpPaste(sharpPaste);
+      result.current.setKpPaste(VSIN_SAMPLE);
     });
 
     act(() => {
@@ -266,7 +263,7 @@ describe("usePredictorState", () => {
     expect(result.current.kpError).toBe("");
     expect(result.current.kpStatus).toContain("VSiN data successfully imported for 1 game");
     expect(result.current.linesRows[0].sharpSignal).toMatchObject({
-      matchup: "UConn@MICH",
+      matchup: "UCONN@MICH",
       moneyline: {
         home: { handlePct: 58, betsPct: 47 },
       },
@@ -275,28 +272,24 @@ describe("usePredictorState", () => {
 
   test("hides the dedicated VSiN import box after a successful sharp import", () => {
     const { result } = renderHook(() => usePredictorState());
-    const sharpPaste = [
-      "CBB - Monday, Apr 6\tSpread\tHandle\tBets\tTotal\tHandle\tBets\tMoney\tHandle\tBets",
-      "â†º\t(2) Connecticut\t+6.5\t30%\t36%\t145.5\t79%\t74%\t+230\t42%\t53%",
-      "â–¼",
-      "17\t(1) Michigan\t-6.5\t70%\t64%\t145.5\t21%\t26%\t-285\t58%\t47%",
-      "â–²",
-    ].join("\n");
 
     act(() => {
-      result.current.handleBulkPasteChange("UConn @ Michigan, 7:00 PM ET");
+      result.current.handleBulkPasteChange("UCONN @ MICH, 7:00 PM ET");
       result.current.handleBulkGames();
       result.current.setShowSharp(true);
     });
 
+    expect(result.current.linesRows).toHaveLength(1);
+
     act(() => {
-      result.current.setSharpPaste(sharpPaste);
+      result.current.setSharpPaste(VSIN_SAMPLE);
     });
 
     act(() => {
       result.current.handleSharpImport();
     });
 
+    expect(result.current.sharpError).toBe("");
     expect(result.current.sharpStatus).toContain("VSiN data successfully imported for 1 game");
     expect(result.current.sharpPaste).toBe("");
     expect(result.current.showSharp).toBe(false);
@@ -304,13 +297,6 @@ describe("usePredictorState", () => {
 
   test("exports prediction CSV rows with VSiN sharp columns populated", async () => {
     const { result } = renderHook(() => usePredictorState());
-    const sharpPaste = [
-      "CBB - Monday, Apr 6\tSpread\tHandle\tBets\tTotal\tHandle\tBets\tMoney\tHandle\tBets",
-      "â†º\t(2) Connecticut\t+6.5\t30%\t36%\t145.5\t79%\t74%\t+230\t42%\t53%",
-      "â–¼",
-      "17\t(1) Michigan\t-6.5\t70%\t64%\t145.5\t21%\t26%\t-285\t58%\t47%",
-      "â–²",
-    ].join("\n");
     const originalCreateElement = document.createElement.bind(document);
     const createObjectURL = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:test");
     const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
@@ -327,9 +313,11 @@ describe("usePredictorState", () => {
     }) as typeof document.createElement);
 
     act(() => {
-      result.current.handleBulkPasteChange("UConn @ Michigan, 7:00 PM ET");
+      result.current.handleBulkPasteChange("UCONN @ MICH, 7:00 PM ET");
       result.current.handleBulkGames();
     });
+
+    expect(result.current.linesRows).toHaveLength(1);
 
     act(() => {
       result.current.toggleEditOdds(0);
@@ -347,8 +335,15 @@ describe("usePredictorState", () => {
       result.current.saveEdit(0);
     });
 
+    expect(result.current.linesRows[0].editedOdds).toMatchObject({
+      homeMoneyline: -285,
+      awayMoneyline: 230,
+      spread: -6.5,
+      overUnder: 145.5,
+    });
+
     act(() => {
-      result.current.setSharpPaste(sharpPaste);
+      result.current.setSharpPaste(VSIN_SAMPLE);
       result.current.handleSharpImport();
     });
 
