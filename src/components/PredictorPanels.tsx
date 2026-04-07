@@ -290,7 +290,7 @@ export function SlateControlsPanel({
               cursor: "pointer",
             }}
           >
-            {showSharp ? "â–² HIDE" : sharpStatus && !sharpError ? "â†» UPDATE" : "â¬‡ IMPORT"}
+            {showSharp ? "HIDE" : sharpStatus && !sharpError ? "UPDATE" : "IMPORT"}
           </button>
         </div>
         {showSharp && (
