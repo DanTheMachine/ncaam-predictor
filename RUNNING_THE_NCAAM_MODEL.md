@@ -38,7 +38,7 @@ Why that is enough:
 
 - the React app serves the browser UI
 - there is no local proxy server requirement in this repo
-- slate entry, stats import, simulations, and CSV evaluation all run directly in the frontend
+- slate entry, stats import, predictions, and CSV evaluation all run directly in the frontend
 
 Important note:
 
@@ -222,7 +222,7 @@ Use these if:
 - you want to test a fatigue scenario
 - a sportsbook paste did not capture the exact game context you want
 
-### 6.7 Run all simulations
+### 6.7 Run all predictions
 
 Click:
 
@@ -240,7 +240,7 @@ What it does:
 
 Typical success message:
 
-- `All simulations complete`
+- `All predictions complete`
 
 ### 6.7 Export predictions
 

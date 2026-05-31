@@ -550,7 +550,7 @@ export function usePredictorState() {
         })),
       );
       setSimsRunning(false);
-      setSchedStatus("All simulations complete");
+      setSchedStatus("All predictions complete");
     }, 80);
   };
 

@@ -213,7 +213,7 @@ export default function NCAAPredictor() {
           <h1 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(28px,6vw,64px)", fontWeight: 400, margin: "4px 0 2px", lineHeight: 1, letterSpacing: 4, color: "#f0e8d0" }}>
             BRACKET <span style={{ color: "#cc3300" }}>BUSTER</span>
           </h1>
-          <p style={{ fontSize: 9, color: "#b08952", letterSpacing: 3, margin: 0 }}>ADJ. OFFENSE · ADJ. DEFENSE · TEMPO · KENPOM EM · 100K SIMULATIONS</p>
+          <p style={{ fontSize: 9, color: "#b08952", letterSpacing: 3, margin: 0 }}>ADJ. OFFENSE · ADJ. DEFENSE · TEMPO · KENPOM EM</p>
         </div>
 
         <div style={{ display: "flex", gap: 0, marginBottom: 20, borderBottom: "1px solid rgba(255,200,50,0.12)" }}>

@@ -245,7 +245,7 @@ The predictor now supports a dedicated `VSIN SHARP DATA` step in the main workfl
 
 Current behavior:
 
-- VSiN data is imported as game-level input after stats import and before slate simulation
+- VSiN data is imported as game-level input after stats import and before running predictions
 - the source panel includes a direct link to:
   - [https://data.vsin.com/betting-splits/?source=DK&sport=CBB](https://data.vsin.com/betting-splits/?source=DK&sport=CBB)
 - successful VSiN import attaches sharp signals to matched slate games
@@ -376,7 +376,7 @@ That panel now contains:
 - team selectors
 - team cards
 - KenPom advanced stat comparison
-- single-game simulation button
+- single-game prediction button
 - manual betting lines
 - single-game result details
 

@@ -33,7 +33,7 @@ Runbook:
 - Import team stats first from Barttorvik or KenPom.
 - Import VSiN sharp data next from:
   - [https://data.vsin.com/betting-splits/?source=DK&sport=CBB](https://data.vsin.com/betting-splits/?source=DK&sport=CBB)
-- Then load or edit the slate and run simulations.
+- Then load or edit the slate and run predictions.
 
 Important behavior:
 
