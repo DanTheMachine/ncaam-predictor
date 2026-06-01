@@ -17,7 +17,7 @@ test('navigates core tabs and loads a slate', async ({ page }) => {
   await expect(page.getByRole('button', { name: /RUN ALL SIMS/i })).toBeVisible()
   await expect(page.getByRole('button', { name: /EDIT/i }).first()).toBeVisible()
   await page.getByRole('button', { name: /RUN ALL SIMS/i }).click()
-  await expect(page.getByText(/All simulations complete/i)).toBeVisible()
+  await expect(page.getByText(/All predictions complete/i)).toBeVisible()
   await expect(page.getByRole('button', { name: /PREDICTIONS CSV/i })).toBeVisible()
 })
 
